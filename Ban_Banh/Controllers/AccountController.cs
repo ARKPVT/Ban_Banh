@@ -16,7 +16,7 @@ namespace Ban_Banh.Controllers
             _configuration = configuration;
         }
 
-        // GET: /Account/Register
+        // GET: /Account/Register/
         public IActionResult Register()
         {
             return View();
