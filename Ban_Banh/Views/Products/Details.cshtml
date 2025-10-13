@@ -1,0 +1,70 @@
+﻿@model List<Ban_Banh.Models.BanhChiTiet>
+@{
+    ViewBag.Title = "Chi tiết bánh";
+}
+
+<h2>Chi tiết bánh</h2>
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success">@TempData["Success"]</div>
+}
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger">@TempData["Error"]</div>
+}
+
+<table class="table table-bordered">
+    <thead>
+        <tr>
+            <th>Mô tả</th>
+            <th>Nguyên liệu</th>
+            <th>Hương vị</th>
+            <th>Kích thước</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in Model)
+        {
+            <tr>
+                <td>@item.MoTaChiTiet</td>
+                <td>@item.NguyenLieu</td>
+                <td>@item.HuongVi</td>
+                <td>@item.KichThuoc</td>
+                <td>
+                    <form asp-action="DeleteDetail" method="post" style="display:inline;">
+                        <input type="hidden" name="id" value="@item.Id" />
+                        <input type="hidden" name="banhId" value="@item.BanhId" />
+                        <button class="btn btn-danger btn-sm">Xóa</button>
+                    </form>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+<hr />
+
+<h4>Thêm chi tiết mới</h4>
+<form asp-action="SaveDetail" method="post">
+    <input type="hidden" name="BanhId" value="@ViewBag.BanhId" />
+
+    <div class="form-group">
+        <label>Mô tả chi tiết</label>
+        <textarea name="MoTaChiTiet" class="form-control"></textarea>
+    </div>
+    <div class="form-group">
+        <label>Nguyên liệu</label>
+        <input name="NguyenLieu" class="form-control" />
+    </div>
+    <div class="form-group">
+        <label>Hương vị</label>
+        <input name="HuongVi" class="form-control" />
+    </div>
+    <div class="form-group">
+        <label>Kích thước</label>
+        <input name="KichThuoc" class="form-control" />
+    </div>
+    <button class="btn btn-primary mt-2">Lưu chi tiết</button>
+</form>

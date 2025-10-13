@@ -1,0 +1,16 @@
+﻿@model YourApp.Models.Employee
+@{
+    ViewData["Title"] = "Xóa nhân viên";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+}
+<h2>Xác nhận xóa</h2>
+
+<div class="alert alert-danger">
+    Bạn có chắc muốn xóa nhân viên <strong>@Model.FullName</strong> (Mã: @Model.Code) không?
+</div>
+
+<form asp-action="Delete" method="post">
+    <input type="hidden" asp-for="Id" />
+    <button type="submit" class="btn btn-danger">Xóa</button>
+    <a class="btn btn-secondary" href="@Url.Action("Index")">Hủy</a>
+</form>

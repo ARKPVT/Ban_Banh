@@ -1,0 +1,15 @@
+﻿@model YourApp.Models.Employee
+@{
+    ViewData["Title"] = "Sửa nhân viên";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+}
+<h2>@ViewData["Title"]</h2>
+
+<form asp-action="Edit" method="post">
+    <input type="hidden" asp-for="Id" />
+    <!-- phần form giống Create -->
+    @* copy toàn bộ inputs từ Create.cshtml *@
+    <!-- ... -->
+    <button class="btn btn-primary" type="submit">Cập nhật</button>
+    <a class="btn btn-secondary" href="@Url.Action("Index")">Hủy</a>
+</form>

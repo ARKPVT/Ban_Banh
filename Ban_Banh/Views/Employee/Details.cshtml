@@ -1,0 +1,21 @@
+﻿@model YourApp.Models.Employee
+@{
+    ViewData["Title"] = "Chi tiết nhân viên";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+}
+<h2>@Model.FullName</h2>
+
+<table class="table table-sm">
+    <tr><th>Mã</th><td>@Model.Code</td></tr>
+    <tr><th>Email</th><td>@Model.Email</td></tr>
+    <tr><th>Phone</th><td>@Model.Phone</td></tr>
+    <tr><th>Bộ phận</th><td>@Model.Department</td></tr>
+    <tr><th>Chức vụ</th><td>@Model.Position</td></tr>
+    <tr><th>Ngày vào</th><td>@Model.HireDate.ToString("yyyy-MM-dd")</td></tr>
+    <tr><th>Lương</th><td>@String.Format(new System.Globalization.CultureInfo("vi-VN"), "{0:N0}₫", Model.BaseSalary)</td></tr>
+    <tr><th>Trạng thái</th><td>@(Model.IsActive ? "Hoạt động" : "Ngưng")</td></tr>
+    <tr><th>Ghi chú</th><td>@Model.Note</td></tr>
+</table>
+
+<a class="btn btn-secondary" href="@Url.Action("Index")">Quay lại</a>
+<a class="btn btn-warning" href="@Url.Action("Edit", new { id = Model.Id })">Sửa</a>

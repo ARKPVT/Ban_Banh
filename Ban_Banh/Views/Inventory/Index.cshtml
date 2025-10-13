@@ -1,0 +1,270 @@
+﻿@model IEnumerable<Ban_Banh.Models.Inventory>
+@{
+    ViewData["Title"] = "Quản lý kho hàng";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+    var banhList = ViewBag.BanhList as List<SelectListItem>;
+    var supplierList = ViewBag.SupplierList as List<SelectListItem>;
+    var locationList = ViewBag.LocationList as List<SelectListItem>;
+}
+
+<div class="container mt-4">
+    <h2 class="mb-4 text-center text-primary">📦 Quản lý kho hàng</h2>
+
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger">@TempData["Error"]</div>
+    }
+    else if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success">@TempData["Success"]</div>
+    }
+
+    <div class="d-flex justify-content-end mb-3">
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#importModal">
+            <i class="bi bi-box-arrow-in-down"></i> Nhập hàng mới
+        </button>
+    </div>
+
+    <table class="table table-hover table-bordered align-middle">
+        <thead class="table-dark text-center">
+            <tr>
+                <th>Tên bánh</th>
+                <th>Mã lô</th>
+                <th>Số lượng tồn</th>
+                <th>Nhà cung cấp</th>
+                <th>Vị trí kho</th>
+                <th>Tên khu</th>
+                <th>Lần cập nhật</th>
+                <th>Ngày sản xuất</th>
+                <th>Hạn sử dụng</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in Model)
+            {
+                var danger = item.SoLuong < 10 ? "table-danger" : "";
+                <tr class="@danger text-center">
+                    <td class="text-start">@item.TenBanh</td>
+                    <td>@("LO" + item.Id.ToString("0000"))</td>
+                    <td class="fw-bold">@item.SoLuong</td>
+                    <td>@item.TenNhaCungCap</td>
+                    <td>@item.MaViTri</td>
+                    <td>@item.TenKhu</td>
+                    <td>@item.LastUpdated.ToString("dd/MM/yyyy HH:mm")</td>
+                    <td>@item.NgaySanXuat?.ToString("dd/MM/yyyy")</td>
+                    <td>@item.HanSuDung?.ToString("dd/MM/yyyy")</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+<!-- Modal Nhập hàng mới -->
+<div class="modal fade" id="importModal" tabindex="-1" aria-labelledby="importModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content shadow-lg border-0 rounded-4">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title fw-bold" id="importModalLabel">Nhập hàng mới</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+
+            <form asp-action="Import" asp-controller="Inventory" method="post" id="importForm">
+                <div class="modal-body">
+
+                    <!-- Nhà cung cấp -->
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Nhà cung cấp</label>
+                        <select name="supplierId" id="supplierDropdown" class="form-select" required>
+                            <option value="">-- Chọn nhà cung cấp --</option>
+                            @foreach (var s in supplierList)
+                            {
+                                <option value="@s.Value">@s.Text</option>
+                            }
+                        </select>
+                    </div>
+
+                    <!-- Loại bánh -->
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Loại bánh</label>
+                        <select name="banhId" id="banhDropdown" class="form-select" required>
+                            <option value="">-- Chọn bánh --</option>
+                            @foreach (var b in banhList)
+                            {
+                                <option value="@b.Value">@b.Text</option>
+                            }
+                        </select>
+                    </div>
+
+                    <!-- Vị trí kho -->
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Vị trí kho</label>
+                        <select name="warehouseLocationId" id="locationDropdown" class="form-select" required>
+                            <option value="">-- Chọn vị trí kho --</option>
+                            @foreach (var l in locationList)
+                            {
+                                <option value="@l.Value">@l.Text</option>
+                            }
+                        </select>
+                    </div>
+
+                    <!-- Số lượng -->
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Số lượng nhập</label>
+                        <input type="number" name="soLuong" class="form-control" min="1" required />
+                    </div>
+
+                    <!-- Ngày nhập -->
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Ngày nhập</label>
+                        <input type="date" name="ngayNhap" class="form-control" required />
+                    </div>
+
+                    <!-- Ngày sản xuất -->
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Ngày sản xuất</label>
+                        <input type="date" name="ngaySanXuat" class="form-control" required />
+                    </div>
+
+                    <!-- Hạn sử dụng -->
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Hạn sử dụng</label>
+                        <input type="date" name="hanSuDung" class="form-control" required />
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn btn-primary fw-bold">Lưu</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const banhSelect = document.getElementById("banhDropdown");
+            const supplierSelect = document.getElementById("supplierDropdown");
+            const locationSelect = document.getElementById("locationDropdown");
+            let currentBanh = "";
+            let currentSupplier = "";
+
+            // 🧁 Load toàn bộ bánh
+            async function loadAllBanh() {
+                const res = await fetch("/Inventory/GetBanhListAll");
+                const data = await res.json();
+                banhSelect.innerHTML = '<option value="">-- Chọn bánh --</option>';
+                data.forEach(b => {
+                    const opt = document.createElement("option");
+                    opt.value = b.value;
+                    opt.textContent = b.text;
+                    banhSelect.appendChild(opt);
+                });
+            }
+
+            // 🏭 Load toàn bộ nhà cung cấp
+            async function loadAllSuppliers() {
+                const res = await fetch("/Inventory/GetSupplierListAll");
+                const data = await res.json();
+                supplierSelect.innerHTML = '<option value="">-- Chọn nhà cung cấp --</option>';
+                data.forEach(s => {
+                    const opt = document.createElement("option");
+                    opt.value = s.value;
+                    opt.textContent = s.text;
+                    supplierSelect.appendChild(opt);
+                });
+            }
+
+            // 📦 Load toàn bộ vị trí kho
+            async function loadAllLocations() {
+                const res = await fetch("/Inventory/GetWarehouseLocationListAll");
+                const data = await res.json();
+                locationSelect.innerHTML = '<option value="">-- Chọn vị trí kho --</option>';
+                data.forEach(l => {
+                    const opt = document.createElement("option");
+                    opt.value = l.value;
+                    opt.textContent = l.text;
+                    locationSelect.appendChild(opt);
+                });
+            }
+
+            // 🧁 Load NCC theo bánh
+            async function loadSuppliersByBanh(banhId, keepValue = null) {
+                const res = await fetch(`/Inventory/GetSuppliersByBanh?banhId=${banhId}`);
+                const data = await res.json();
+                supplierSelect.innerHTML = '<option value="">-- Chọn nhà cung cấp --</option>';
+                data.forEach(s => {
+                    const opt = document.createElement("option");
+                    opt.value = s.value;
+                    opt.textContent = s.text;
+                    supplierSelect.appendChild(opt);
+                });
+                if (keepValue && data.some(s => s.value === keepValue)) {
+                    supplierSelect.value = keepValue;
+                }
+            }
+
+            // 🏭 Load bánh theo NCC
+            async function loadBanhBySupplier(supplierId, keepValue = null) {
+                const res = await fetch(`/Inventory/GetBanhBySupplier?supplierId=${supplierId}`);
+                const data = await res.json();
+                banhSelect.innerHTML = '<option value="">-- Chọn bánh --</option>';
+                data.forEach(b => {
+                    const opt = document.createElement("option");
+                    opt.value = b.value;
+                    opt.textContent = b.text;
+                    banhSelect.appendChild(opt);
+                });
+                if (keepValue && data.some(b => b.value === keepValue)) {
+                    banhSelect.value = keepValue;
+                }
+            }
+
+            // 🔹 Khi chọn bánh
+            banhSelect.addEventListener("change", async function () {
+                const banhId = this.value;
+                if (!banhId) {
+                    currentBanh = "";
+                    currentSupplier = "";
+                    await loadAllBanh();
+                    await loadAllSuppliers();
+                    supplierSelect.value = "";
+                    return;
+                }
+                currentBanh = banhId;
+                await loadSuppliersByBanh(banhId, currentSupplier);
+                const validSupplier = Array.from(supplierSelect.options).some(opt => opt.value === currentSupplier);
+                if (!validSupplier) {
+                    currentSupplier = "";
+                    supplierSelect.value = "";
+                }
+            });
+
+            // 🔹 Khi chọn NCC
+            supplierSelect.addEventListener("change", async function () {
+                const supplierId = this.value;
+                if (!supplierId) {
+                    currentSupplier = "";
+                    currentBanh = "";
+                    await loadAllSuppliers();
+                    await loadAllBanh();
+                    banhSelect.value = "";
+                    return;
+                }
+                currentSupplier = supplierId;
+                await loadBanhBySupplier(supplierId, currentBanh);
+                const validBanh = Array.from(banhSelect.options).some(opt => opt.value === currentBanh);
+                if (!validBanh) {
+                    currentBanh = "";
+                    banhSelect.value = "";
+                }
+            });
+
+            // 🚀 Lần đầu mở modal → load dữ liệu gốc
+            loadAllBanh();
+            loadAllSuppliers();
+            loadAllLocations();
+        });
+    </script>
+}

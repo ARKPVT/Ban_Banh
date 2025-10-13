@@ -1,0 +1,99 @@
+﻿@model Ban_Banh.Models.Account
+@using Ban_Banh.Models
+
+@{
+    Layout = "_Layout";
+    var message = TempData["Message"] as string;
+    var cart = ViewData["Cart"] as List<Cart>; // Giỏ hàng được truyền qua ViewData
+    decimal total = cart?.Sum(x => x.Banh.Gia * x.Quantity) ?? 0M;
+}
+
+<h2>Thanh toán</h2>
+
+@if (!string.IsNullOrEmpty(message))
+{
+    <div class="alert alert-success">@message</div>
+}
+
+@if (cart == null || !cart.Any())
+{
+    <p>Giỏ hàng của bạn đang trống.</p>
+}
+else
+{
+    <h3>Giỏ hàng</h3>
+    <table class="table table-bordered">
+        <thead>
+            <tr>
+                <th>Sản phẩm</th>
+                <th>Đơn giá</th>
+                <th>Số lượng</th>
+                <th>Tạm tính</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in cart)
+            {
+                <tr>
+                    <td>@item.Banh.TenBanh</td>
+                    <td>@item.Banh.Gia.ToString("N0") đ</td>
+                    <td>@item.Quantity</td>
+                    <td>@((item.Banh.Gia * item.Quantity).ToString("N0")) đ</td>
+                </tr>
+            }
+        </tbody>
+        <tfoot>
+            <tr>
+                <td colspan="3" class="text-end"><strong>Tổng cộng</strong></td>
+                <td><strong>@total.ToString("N0") đ</strong></td>
+            </tr>
+        </tfoot>
+    </table>
+
+    <hr />
+
+    <h3>Thông tin giao hàng</h3>
+
+    <form asp-controller="Banh" asp-action="ConfirmCheckout" method="post">
+        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+        <div class="mb-2">
+            <label asp-for="FullName" class="form-label"></label>
+            <input asp-for="FullName" class="form-control" />
+            <span asp-validation-for="FullName" class="text-danger"></span>
+        </div>
+
+        <div class="mb-2">
+            <label asp-for="Phone" class="form-label"></label>
+            <input asp-for="Phone" class="form-control" />
+            <span asp-validation-for="Phone" class="text-danger"></span>
+        </div>
+
+        <div class="mb-2">
+            <label asp-for="Address" class="form-label"></label>
+            <input asp-for="Address" class="form-control" />
+            <span asp-validation-for="Address" class="text-danger"></span>
+        </div>
+
+        <div class="form-check mb-2">
+            <input class="form-check-input" type="checkbox" name="useProfile" id="useProfile" />
+            <label class="form-check-label" for="useProfile">
+                Dùng thông tin trong Hồ sơ (nếu có)
+            </label>
+        </div>
+
+        <div class="form-check mb-3">
+            <input class="form-check-input" type="checkbox" name="saveToProfile" id="saveToProfile" />
+            <label class="form-check-label" for="saveToProfile">
+                Lưu thông tin giao hàng trên vào Hồ sơ
+            </label>
+        </div>
+
+        <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-primary">Xác nhận đặt hàng</button>
+            <a class="btn btn-outline-secondary" asp-controller="Account" asp-action="Profile">
+                Cập nhật trong Hồ sơ
+            </a>
+        </div>
+    </form>
+}

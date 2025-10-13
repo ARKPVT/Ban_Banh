@@ -1,0 +1,140 @@
+﻿@model IEnumerable<DemoApp.Models.ProblemProductViewModel>
+@{
+    ViewData["Title"] = "Quản lý hàng có vấn đề";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+    var filterType = ViewBag.FilterType as string ?? "all";
+    var filterStatus = ViewBag.FilterStatus as string ?? "all";
+
+    var problemTypes = new Dictionary<string, string>
+    {
+        { "all", "Tất cả" },
+        { "Damaged", "Hàng hư hỏng" },
+        { "Returned", "Hàng trả lại" },
+        { "Recalled", "Hàng thu hồi" }
+    };
+
+    var statusFilters = new Dictionary<string, string>
+    {
+        { "all", "Tất cả" },
+        { "Pending", "Chờ xử lý" },
+        { "Processing", "Đang xử lý" },
+        { "Resolved", "Đã xử lý" }
+    };
+}
+
+<div class="container mt-4">
+    <h2 class="fw-bold mb-3">@ViewData["Title"]</h2>
+
+    <!-- Bộ lọc -->
+    <form method="get" class="row g-3 mb-4">
+        <div class="col-md-3">
+            <label class="form-label fw-semibold">Loại vấn đề:</label>
+            <select name="filterType" class="form-select" onchange="this.form.submit()">
+                @{
+                    foreach (var t in problemTypes)
+                    {
+                        if (t.Key == filterType)
+                        {
+                            <option value="@t.Key" selected>@t.Value</option>
+                        }
+                        else
+                        {
+                            <option value="@t.Key">@t.Value</option>
+                        }
+                    }
+                }
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label class="form-label fw-semibold">Trạng thái:</label>
+            <select name="filterStatus" class="form-select" onchange="this.form.submit()">
+                @{
+                    foreach (var s in statusFilters)
+                    {
+                        if (s.Key == filterStatus)
+                        {
+                            <option value="@s.Key" selected>@s.Value</option>
+                        }
+                        else
+                        {
+                            <option value="@s.Key">@s.Value</option>
+                        }
+                    }
+                }
+            </select>
+        </div>
+        <div class="col-md-6 text-end align-self-end">
+            <a asp-action="Create" class="btn btn-primary">+ Thêm hàng lỗi mới</a>
+        </div>
+    </form>
+
+    <!-- Bảng -->
+    <div class="card shadow-sm">
+        <div class="card-header bg-light fw-bold">Danh sách hàng có vấn đề</div>
+        <div class="card-body p-0">
+            <table class="table table-striped table-hover text-center align-middle mb-0">
+                <thead class="table-secondary">
+                    <tr>
+                        <th>Tên sản phẩm</th>
+                        <th>Danh mục</th>
+                        <th>Loại vấn đề</th>
+                        <th>Mô tả</th>
+                        <th>Ngày báo cáo</th>
+                        <th>Trạng thái</th>
+                        <th>Hành động</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var p in Model)
+                    {
+                        var statusClass = p.Status switch
+                        {
+                            "Pending" => "bg-warning text-dark",
+                            "Processing" => "bg-info text-dark",
+                            "Resolved" => "bg-success",
+                            _ => ""
+                        };
+
+                        <tr>
+                            <td class="fw-semibold">@p.ProductName</td>
+                            <td>@p.Category</td>
+                            <td>
+                                @switch (p.ProblemType)
+                                {
+                                    case "Damaged":
+                                        <span class="badge bg-danger">Hư hỏng</span>
+                                        ; break;
+                                    case "Returned":
+
+                                        <span class="badge bg-warning text-dark">Hàng trả</span>
+                                        ; break;
+                                    case "Recalled":
+
+                                        <span class="badge bg-secondary">Thu hồi</span>
+                                        ; break;
+                                }
+                            </td>
+                            <td>@p.Description</td>
+                            <td>@p.ReportDate.ToString("dd/MM/yyyy")</td>
+                            <td><span class="badge @statusClass">@p.Status</span></td>
+                            <td>
+                                @if (p.Status != "Resolved")
+                                {
+                                    <form asp-action="UpdateStatus" method="post" class="d-inline">
+                                        <input type="hidden" name="id" value="@p.Id" />
+                                        <select name="newStatus" class="form-select form-select-sm d-inline-block w-auto">
+                                            <option value="Pending">Chờ xử lý</option>
+                                            <option value="Processing">Đang xử lý</option>
+                                            <option value="Resolved">Đã xử lý</option>
+                                        </select>
+                                        <button type="submit" class="btn btn-sm btn-outline-primary ms-1">Cập nhật</button>
+                                    </form>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

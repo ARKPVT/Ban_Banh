@@ -1,0 +1,46 @@
+﻿@model IEnumerable<DemoApp.Models.WorkScheduleViewModel>
+@{
+
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+}
+<div class="container mt-4">
+    <h2 class="mb-3">Lịch làm việc nhân viên</h2>
+    <a href="/Schedule/Create" class="btn btn-primary mb-3">+ Thêm lịch làm</a>
+
+    <table class="table table-hover table-bordered align-middle text-center">
+        <thead class="table-light">
+            <tr>
+                <th>Nhân viên</th>
+                <th>Ngày làm</th>
+                <th>Ca làm</th>
+                <th>Trạng thái</th>
+                <th>Ghi chú</th>
+                <th>Hành động</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var s in Model)
+            {
+                string statusClass = s.Status switch
+                {
+                    "Đã làm" => "text-success fw-bold",
+                    "Nghỉ" => "text-danger fw-bold",
+                    "Trễ" => "text-warning fw-bold",
+                    _ => "text-muted"
+                };
+
+                <tr>
+                    <td>@s.EmployeeName</td>
+                    <td>@s.WorkDate.ToString("dd/MM/yyyy")</td>
+                    <td>@s.Shift</td>
+                    <td class="@statusClass">@s.Status</td>
+                    <td>@s.Notes</td>
+                    <td>
+                        <a href="/Schedule/Edit/@s.Id" class="btn btn-sm btn-warning">Sửa</a>
+                        <a href="/Schedule/Delete/@s.Id" class="btn btn-sm btn-danger">Xóa</a>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>

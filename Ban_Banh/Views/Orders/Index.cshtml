@@ -1,0 +1,146 @@
+﻿@model List<Ban_Banh.Models.OrderWithProductsViewModel>
+
+@{
+    ViewData["Title"] = "Quản lý đơn hàng";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+}
+
+<div class="container mt-4">
+    <h2 class="mb-4 text-center">
+        📦 Quản lý đơn hàng
+    </h2>
+
+    <div class="table-responsive shadow-sm">
+        <table class="table table-striped table-bordered align-middle">
+            <thead class="table-dark text-center">
+                <tr>
+                    <th style="width:70px">Mã ĐH</th>
+                    <th style="width:160px">Khách hàng</th>
+                    <th>Email</th>
+                    <th style="width:160px">Trạng thái</th>
+                    <th style="width:160px">Ngày đặt</th>
+                    <th>Sản phẩm</th>
+                    <th style="width:100px">Chi tiết</th>
+                </tr>
+            </thead>
+            <tbody class="align-middle text-center">
+                @foreach (var order in Model)
+                {
+                    <tr>
+                        <td><strong>#@order.OrderId</strong></td>
+                        <td>@order.FullName</td>
+                        <td>@order.Email</td>
+                        <td>
+                            <form asp-action="UpdateStatus" asp-controller="Orders" method="post" class="d-flex justify-content-center align-items-center">
+                                <input type="hidden" name="orderId" value="@order.OrderId" />
+                                <select name="status" class="form-select form-select-sm w-75 text-center">
+                                    @foreach (var s in new[] { "Pending", "Processing", "Shipped", "Completed", "Cancelled" })
+                                    {
+                                        <option value="@s" selected="@(order.Status == s)">@s</option>
+                                    }
+                                </select>
+                                <button type="submit" class="btn btn-sm btn-primary ms-1">✔</button>
+                            </form>
+                        </td>
+                        <td>@order.CreatedAt.ToString("dd/MM/yyyy HH:mm")</td>
+                        <td class="text-start">
+                            <ul class="list-unstyled mb-0">
+                                @foreach (var p in order.Products)
+                                {
+                                    <li>
+                                        <strong>@p.TenBanh</strong> (x@(@p.Quantity)) –
+                                        <span class="text-success">@((p.Gia * p.Quantity).ToString("N0"))₫</span>
+                                    </li>
+                                }
+                            </ul>
+                        </td>
+                        <td>
+                            <button class="btn btn-sm btn-info text-white"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#orderDetailModal-@order.OrderId">
+                                Chi tiết
+                            </button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- 👇 Các modal nằm ngoài bảng, tránh vỡ layout -->
+@foreach (var order in Model)
+{
+    <div class="modal fade" id="orderDetailModal-@order.OrderId" tabindex="-1" aria-labelledby="orderDetailLabel-@order.OrderId" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title" id="orderDetailLabel-@order.OrderId">
+                        🧾 Chi tiết đơn hàng #@order.OrderId
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+
+                <div class="modal-body p-4">
+                    <h6 class="fw-bold mb-3 text-secondary">Thông tin khách hàng</h6>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <p><strong>👤 Họ tên:</strong> @order.FullName</p>
+                            <p><strong>📧 Email:</strong> @order.Email</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>📞 Điện thoại:</strong> @(order.Phone ?? "—")</p>
+                            <p><strong>🏠 Địa chỉ:</strong> @(order.Address ?? "—")</p>
+                        </div>
+                    </div>
+
+                    <hr />
+
+                    <h6 class="fw-bold mb-3 text-secondary">Danh sách sản phẩm</h6>
+                    <table class="table table-bordered table-hover">
+                        <thead class="table-light">
+                            <tr class="text-center">
+                                <th>Tên bánh</th>
+                                <th style="width:100px">Số lượng</th>
+                                <th style="width:120px">Đơn giá</th>
+                                <th style="width:120px">Tổng</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var p in order.Products)
+                            {
+                                <tr class="text-center">
+                                    <td class="text-start">@p.TenBanh</td>
+                                    <td>@(@p.Quantity)</td>
+                                    <td>@p.Gia.ToString("N0")₫</td>
+                                    <td>@((p.Gia * p.Quantity).ToString("N0"))₫</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+
+                    <div class="text-end mt-3">
+                        <h5 class="fw-bold text-danger">
+                            💰 Tổng tiền: @order.Products.Sum(p => p.Gia * p.Quantity).ToString("N0")₫
+                        </h5>
+                    </div>
+
+                    <hr />
+
+                    <div>
+                        <p><strong>📦 Trạng thái:</strong> <span class="badge bg-info">@order.Status</span></p>
+                        <p><strong>🕓 Ngày đặt:</strong> @order.CreatedAt.ToString("dd/MM/yyyy HH:mm")</p>
+                        @if (order.UpdatedAt.HasValue)
+                        {
+                            <p><strong>🔁 Cập nhật lần cuối:</strong> @order.UpdatedAt.Value.ToString("dd/MM/yyyy HH:mm")</p>
+                        }
+                    </div>
+                </div>
+
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}

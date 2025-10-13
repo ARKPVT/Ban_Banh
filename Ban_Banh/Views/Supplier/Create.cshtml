@@ -1,0 +1,60 @@
+﻿@model Ban_Banh.Models.Supplier
+@{
+    ViewData["Title"] = "Thêm Nhà Cung Cấp";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+}
+
+<h2>@ViewData["Title"]</h2>
+
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger"><i class="bi bi-exclamation-triangle"></i> @TempData["Error"]</div>
+}
+@if (TempData["Message"] != null)
+{
+    <div class="alert alert-success"><i class="bi bi-check-circle"></i> @TempData["Message"]</div>
+}
+<div asp-validation-summary="All" class="alert alert-warning"></div>
+
+
+<div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+<form asp-action="Create" method="post" class="mt-3">
+    @Html.AntiForgeryToken()
+    <div class="mb-3">
+        <label class="form-label">Tên Nhà Cung Cấp</label>
+        <input asp-for="TenNhaCungCap" class="form-control" required />
+        <span asp-validation-for="TenNhaCungCap" class="text-danger"></span>
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Địa Chỉ</label>
+        <input asp-for="DiaChi" class="form-control" />
+        <span asp-validation-for="DiaChi" class="text-danger"></span>
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Số Điện Thoại</label>
+        <input asp-for="SoDienThoai" class="form-control" />
+        <span asp-validation-for="SoDienThoai" class="text-danger"></span>
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Email</label>
+        <input asp-for="Email" class="form-control" type="email" />
+        <span asp-validation-for="Email" class="text-danger"></span>
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Website</label>
+        <input asp-for="Website" class="form-control" />
+        <span asp-validation-for="Website" class="text-danger"></span>
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Ghi Chú</label>
+        <textarea asp-for="GhiChu" class="form-control"></textarea>
+        <span asp-validation-for="GhiChu" class="text-danger"></span>
+    </div>
+    <button type="submit" class="btn btn-primary"><i class="bi bi-save"></i> Lưu</button>
+    <a asp-action="Index" class="btn btn-secondary">Hủy</a>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

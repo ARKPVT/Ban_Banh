@@ -1,0 +1,65 @@
+﻿@model List<Ban_Banh.Models.Supplier>
+@{
+    ViewData["Title"] = "Danh Sách Nhà Cung Cấp";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+}
+
+<h2>📦 Danh Sách Nhà Cung Cấp</h2>
+
+<form asp-action="Index" method="get" class="mb-3">
+    <div class="input-group w-50">
+        <input type="text" name="keyword" value="@ViewBag.Keyword" class="form-control" placeholder="Tìm theo tên hoặc địa chỉ..." />
+        <button class="btn btn-primary" type="submit">Tìm kiếm</button>
+        <a asp-action="Index" class="btn btn-outline-secondary">Xóa lọc</a>
+    </div>
+</form>
+
+@if (TempData["Message"] != null)
+{
+    <div class="alert alert-success">@TempData["Message"]</div>
+}
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger">@TempData["Error"]</div>
+}
+
+<a asp-action="Create" class="btn btn-success mb-3">+ Thêm Nhà Cung Cấp</a>
+
+<table class="table table-bordered table-hover align-middle">
+    <thead class="table-light">
+        <tr>
+            <th>Tên Nhà Cung Cấp</th>
+            <th>Địa Chỉ</th>
+            <th>Số Điện Thoại</th>
+            <th>Email</th>
+            <th>Số Loại Bánh</th>
+            <th>Tổng Giá Trị Nhập</th>
+            <th>Hành Động</th>
+        </tr>
+    </thead>
+    <tbody>
+        @if (Model != null && Model.Any())
+        {
+            foreach (var s in Model)
+            {
+                <tr>
+                    <td>@s.TenNhaCungCap</td>
+                    <td>@s.DiaChi</td>
+                    <td>@s.SoDienThoai</td>
+                    <td>@s.Email</td>
+                    <td>@Html.Raw(s.TenBanh)</td>
+                    <td>@s.GiaNhap?.ToString("N0") đ</td>
+                    <td class="text-center">
+                        <a asp-action="Edit" asp-route-id="@s.Id" class="btn btn-sm btn-warning">Sửa</a>
+                        <a asp-action="Delete" asp-route-id="@s.Id" class="btn btn-sm btn-danger"
+                           onclick="return confirm('Bạn chắc chắn muốn xóa nhà cung cấp này?')">Xóa</a>
+                    </td>
+                </tr>
+            }
+        }
+        else
+        {
+            <tr><td colspan="7" class="text-center text-muted">Không có dữ liệu.</td></tr>
+        }
+    </tbody>
+</table>

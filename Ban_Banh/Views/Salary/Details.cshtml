@@ -1,0 +1,21 @@
+﻿@model YourApp.Models.SalaryRecord
+@{
+    ViewData["Title"] = "Chi tiết bảng lương";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+}
+
+<h2>@ViewData["Title"]</h2>
+
+<table class="table table-sm">
+    <tr><th>Nhân viên</th><td>@Model.EmployeeName</td></tr>
+    <tr><th>Bộ phận</th><td>@Model.Department</td></tr>
+    <tr><th>Kỳ lương</th><td>@Model.Period.ToString("MM/yyyy")</td></tr>
+    <tr><th>Lương cơ bản</th><td>@String.Format("{0:N0}₫", Model.BaseSalary)</td></tr>
+    <tr><th>Thưởng</th><td>@String.Format("{0:N0}₫", Model.Bonus)</td></tr>
+    <tr><th>Khấu trừ</th><td>@String.Format("{0:N0}₫", Model.Deduction)</td></tr>
+    <tr><th>Tổng thực nhận</th><td><strong>@String.Format("{0:N0}₫", Model.Total)</strong></td></tr>
+    <tr><th>Ghi chú</th><td>@Model.Note</td></tr>
+</table>
+
+<a href="@Url.Action("Index")" class="btn btn-secondary">Quay lại</a>
+<a href="@Url.Action("Edit", new { id = Model.Id })" class="btn btn-warning">Sửa</a>

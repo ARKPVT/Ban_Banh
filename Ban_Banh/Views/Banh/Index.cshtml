@@ -1,0 +1,201 @@
+﻿@model IEnumerable<Ban_Banh.Models.Banh>
+
+@{
+    ViewData["Title"] = "Danh sách bánh";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var selectedCategoryId = ViewData["SelectedCategoryId"] as int?;
+    var selectedMinPrice = ViewData["SelectedMinPrice"];
+    var selectedMaxPrice = ViewData["SelectedMaxPrice"];
+    var categories = ViewData["Categories"] as List<Ban_Banh.Models.Category>;
+}
+
+<div class="container mt-4">
+    <h2 class="text-center mb-4 fw-bold">🍰 Danh Sách Các Loại Bánh</h2>
+
+    <!-- Form lọc -->
+    <form method="get" class="row g-3 mb-4 justify-content-center">
+        <div class="col-auto">
+            <select class="form-select shadow-sm" name="categoryId">
+                <option value="">-- Tất cả danh mục --</option>
+                @foreach (var cat in categories)
+                {
+                    @: <option value="@cat.Id" @(selectedCategoryId.HasValue && selectedCategoryId.Value == cat.Id ? "selected=\"selected\"" : "")>@cat.TenDanhMuc</option>
+                }
+            </select>
+        </div>
+        <div class="col-auto">
+            <input type="number" class="form-control shadow-sm" name="minPrice" placeholder="Giá từ" 
+                   value="@(selectedMinPrice ?? "")" />
+        </div>
+        <div class="col-auto">
+            <input type="number" class="form-control shadow-sm" name="maxPrice" placeholder="Giá đến" 
+                   value="@(selectedMaxPrice ?? "")" />
+        </div>
+        <div class="col-auto">
+            <button type="submit" class="btn btn-success shadow-sm">Lọc</button>
+        </div>
+    </form>
+
+    <!-- Toast -->
+    <div class="position-fixed top-0 end-0 p-3" style="z-index: 1055;">
+        @if (TempData["Message"] != null)
+        {
+            <div id="cartToast" class="toast align-items-center text-white bg-primary border-0 show" role="alert" aria-live="assertive" aria-atomic="true">
+                <div class="d-flex">
+                    <div class="toast-body">
+                        @TempData["Message"]
+                    </div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                </div>
+            </div>
+        }
+    </div>
+
+    <!-- Danh sách bánh -->
+<div class="row g-4 mt-3">
+    @foreach (var item in Model)
+    {
+        <div class="col-12 col-sm-6 col-md-4 col-lg-3">
+            <div class="card product-card h-100 shadow-sm">
+                <div class="image-container">
+                    <img src="@item.HinhAnh" class="card-img-top" alt="@item.TenBanh" />
+                </div>
+
+                <div class="card-body text-center d-flex flex-column">
+                    <h5 class="card-title text-truncate">@item.TenBanh</h5>
+                    <p class="card-text small text-muted flex-grow-1">@item.MoTa</p>
+                    <p class="text-secondary">@item.CategoryName</p>
+                    <p class="text-danger fw-bold fs-5">@item.Gia.ToString("N0") đ</p>
+
+                    @if (item.SoLuongTon > 0)
+                    {
+                        <p class="text-success mb-1">Còn lại: @item.SoLuongTon</p>
+                        <a asp-controller="Banh" asp-action="Details" asp-route-id="@item.Id"
+                           class="btn btn-outline-info w-100 mt-2">🔍 Xem chi tiết</a>
+
+                        <a asp-controller="Banh" asp-action="AddToCart" asp-route-id="@item.Id"
+                           class="btn btn-primary w-100 mt-auto add-btn">🛒 Thêm vào giỏ</a>
+                    }
+                    else
+                    {
+                        <p class="text-danger mb-1 fw-bold">Hết hàng</p>
+                        <button class="btn btn-secondary w-100 mt-auto" disabled>🚫 Hết hàng</button>
+                    }
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+<style>
+    /* Căn chỉnh ảnh đồng bộ, bo góc nhẹ */
+    .product-card .image-container {
+        width: 100%;
+        height: 220px;
+        overflow: hidden;
+        border-top-left-radius: .75rem;
+        border-top-right-radius: .75rem;
+    }
+
+    .product-card img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: transform .4s ease, filter .3s ease;
+    }
+
+    /* Hiệu ứng hover tổng thể */
+    .product-card {
+        border: none;
+        border-radius: .75rem;
+        background-color: #fff;
+        transition: transform .3s ease, box-shadow .3s ease;
+    }
+
+    .product-card:hover {
+        transform: translateY(-6px);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
+    }
+
+    .product-card:hover img {
+        transform: scale(1.05);
+        filter: brightness(1.08);
+    }
+
+    /* Tiêu đề & mô tả */
+    .card-title {
+        font-size: 1.05rem;
+        font-weight: 600;
+        color: #333;
+        margin-bottom: .5rem;
+    }
+
+    .card-text {
+        font-size: 0.9rem;
+        color: #666;
+    }
+
+    /* Nút thêm vào giỏ */
+    .add-btn {
+        transition: all .3s ease;
+    }
+
+    .add-btn:hover {
+        background-color: #198754 !important; /* xanh lá Bootstrap */
+        border-color: #198754 !important;
+        transform: scale(1.03);
+    }
+
+    /* Bo góc chung cho input, select, nút */
+    .form-select, .form-control, .btn {
+        border-radius: .5rem;
+    }
+
+    /* Nhẹ hóa hiệu ứng hover cho nút xem chi tiết */
+    .btn-outline-info:hover {
+        color: #fff !important;
+        background-color: #0dcaf0 !important;
+        border-color: #0dcaf0 !important;
+        transform: scale(1.02);
+    }
+
+    /* Giãn cách giữa hai nút hành động */
+.btn-outline-info {
+    margin-bottom: 0.5rem; /* tạo khoảng cách hợp lý */
+    transition: all .25s ease;
+}
+
+.btn-outline-info:hover {
+    color: #fff !important;
+    background-color: #0dcaf0 !important;
+    border-color: #0dcaf0 !important;
+    transform: scale(1.02);
+}
+
+/* Nút thêm vào giỏ đẹp, cân đối */
+.add-btn {
+    transition: all .3s ease;
+    padding: 0.6rem 0;
+    font-weight: 500;
+}
+
+.add-btn:hover {
+    background-color: #198754 !important;
+    border-color: #198754 !important;
+    transform: scale(1.03);
+}
+
+</style>
+
+
+@section Scripts {
+    <script>
+        window.addEventListener('DOMContentLoaded', () => {
+            const toastEl = document.getElementById('cartToast');
+            if (toastEl) {
+                const toast = new bootstrap.Toast(toastEl, { delay: 3000 });
+                toast.show();
+            }
+        });
+    </script>
+}
