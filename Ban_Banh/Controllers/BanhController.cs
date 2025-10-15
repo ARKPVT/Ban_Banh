@@ -238,7 +238,7 @@ namespace Ban_Banh.Controllers
         // ===============================
         // 5️⃣ Cập nhật giỏ hàng
         // ===============================
-        [HttpPost]
+        
         [HttpPost]
         public IActionResult UpdateCart(int cartId, int quantity)
         {
@@ -456,112 +456,160 @@ namespace Ban_Banh.Controllers
             {
                 conn.Open();
 
-                // ✅ 1. Cập nhật thông tin tài khoản
-                string updateAccountSql = @"
-        UPDATE Account
-        SET 
-            FullName = @FullName,
-            Email = @Email,
-            Phone = @Phone,
-            Address = @Address
-        WHERE Id = @AccountId";
-
-                SqlCommand cmdUpdateAccount = new SqlCommand(updateAccountSql, conn);
-                cmdUpdateAccount.Parameters.AddWithValue("@FullName", (object?)FullName ?? DBNull.Value);
-                cmdUpdateAccount.Parameters.AddWithValue("@Email", (object?)Email ?? DBNull.Value);
-                cmdUpdateAccount.Parameters.AddWithValue("@Phone", (object?)Phone ?? DBNull.Value);
-                cmdUpdateAccount.Parameters.AddWithValue("@Address", (object?)Address ?? DBNull.Value);
-                cmdUpdateAccount.Parameters.AddWithValue("@AccountId", accountId.Value);
-                cmdUpdateAccount.ExecuteNonQuery();
-
-                // ✅ 2. Cập nhật lại session
-                HttpContext.Session.SetString("FullName", FullName ?? "");
-                HttpContext.Session.SetString("UserEmail", Email ?? "");
-                HttpContext.Session.SetString("Phone", Phone ?? "");
-                HttpContext.Session.SetString("Address", Address ?? "");
-
-                // ✅ 3. Lấy sản phẩm trong giỏ
-                string selectCart = "SELECT BanhId, Quantity FROM Cart WHERE AccountId=@AccountId";
-                SqlCommand cmdSelect = new SqlCommand(selectCart, conn);
-                cmdSelect.Parameters.AddWithValue("@AccountId", accountId.Value);
-
-                var cartItems = new List<(int BanhId, int Quantity)>();
-                using (var reader = cmdSelect.ExecuteReader())
+                using (SqlTransaction tran = conn.BeginTransaction())
                 {
-                    while (reader.Read())
+                    try
                     {
-                        cartItems.Add((reader.GetInt32(0), reader.GetInt32(1)));
+                        // ✅ 1. Cập nhật thông tin tài khoản
+                        string updateAccountSql = @"
+                    UPDATE Account
+                    SET 
+                        FullName = @FullName,
+                        Email = @Email,
+                        Phone = @Phone,
+                        Address = @Address
+                    WHERE Id = @AccountId";
+                        using (SqlCommand cmd = new SqlCommand(updateAccountSql, conn, tran))
+                        {
+                            cmd.Parameters.AddWithValue("@FullName", (object?)FullName ?? DBNull.Value);
+                            cmd.Parameters.AddWithValue("@Email", (object?)Email ?? DBNull.Value);
+                            cmd.Parameters.AddWithValue("@Phone", (object?)Phone ?? DBNull.Value);
+                            cmd.Parameters.AddWithValue("@Address", (object?)Address ?? DBNull.Value);
+                            cmd.Parameters.AddWithValue("@AccountId", accountId.Value);
+                            cmd.ExecuteNonQuery();
+                        }
+
+                        // ✅ 2. Cập nhật lại session
+                        HttpContext.Session.SetString("FullName", FullName ?? "");
+                        HttpContext.Session.SetString("UserEmail", Email ?? "");
+                        HttpContext.Session.SetString("Phone", Phone ?? "");
+                        HttpContext.Session.SetString("Address", Address ?? "");
+
+                        // ✅ 3. Lấy sản phẩm trong giỏ hàng
+                        var cartItems = new List<(int BanhId, int Quantity)>();
+                        string selectCart = "SELECT BanhId, Quantity FROM Cart WHERE AccountId=@AccountId";
+                        using (SqlCommand cmd = new SqlCommand(selectCart, conn, tran))
+                        {
+                            cmd.Parameters.AddWithValue("@AccountId", accountId.Value);
+                            using (var reader = cmd.ExecuteReader())
+                            {
+                                while (reader.Read())
+                                {
+                                    cartItems.Add((reader.GetInt32(0), reader.GetInt32(1)));
+                                }
+                            }
+                        }
+
+                        if (cartItems.Count == 0)
+                        {
+                            TempData["Message"] = "🛒 Giỏ hàng trống, không thể thanh toán!";
+                            tran.Rollback();
+                            return RedirectToAction("Cart", "Banh");
+                        }
+
+                        // ✅ 4. Tạo đơn hàng
+                        int orderId;
+                        string insertOrder = @"
+                    INSERT INTO [Order] (AccountId, CreatedAt)
+                    VALUES (@AccountId, @CreatedAt);
+                    SELECT SCOPE_IDENTITY();";
+                        using (SqlCommand cmd = new SqlCommand(insertOrder, conn, tran))
+                        {
+                            cmd.Parameters.AddWithValue("@AccountId", accountId.Value);
+                            cmd.Parameters.AddWithValue("@CreatedAt", DateTime.Now);
+                            orderId = Convert.ToInt32(cmd.ExecuteScalar());
+                        }
+
+                        // ✅ 5. Lưu chi tiết và trừ kho theo FIFO (hạn sử dụng sớm nhất)
+                        foreach (var item in cartItems)
+                        {
+                            int remaining = item.Quantity;
+
+                            // --- Lấy danh sách lô hàng theo hạn sử dụng ---
+                            var lots = new List<(int LotId, int SoLuong, string BatchCode)>();
+                            string selectLots = @"
+                        SELECT Id, SoLuong, BatchCode
+                        FROM Inventory
+                        WHERE BanhId=@BanhId
+                        ORDER BY HanSuDung ASC, Id ASC";
+                            using (SqlCommand cmdLots = new SqlCommand(selectLots, conn, tran))
+                            {
+                                cmdLots.Parameters.AddWithValue("@BanhId", item.BanhId);
+                                using (var readerLots = cmdLots.ExecuteReader())
+                                {
+                                    while (readerLots.Read())
+                                        lots.Add((readerLots.GetInt32(0), readerLots.GetInt32(1), readerLots.GetString(2)));
+                                }
+                            }
+
+                            // --- Trừ kho và ghi OrderDetail ---
+                            // --- Trừ kho và ghi OrderDetail ---
+                            foreach (var lot in lots)
+                            {
+                                if (remaining <= 0) break;
+
+                                int toDeduct = Math.Min(remaining, lot.SoLuong);
+
+                                // ❗ Bỏ qua lô có SoLuong = 0 hoặc không cần trừ
+                                if (toDeduct <= 0) continue;
+
+                                // Trừ kho
+                                string updateLot = "UPDATE Inventory SET SoLuong = SoLuong - @Qty WHERE Id=@LotId";
+                                using (SqlCommand cmdUpdateLot = new SqlCommand(updateLot, conn, tran))
+                                {
+                                    cmdUpdateLot.Parameters.AddWithValue("@Qty", toDeduct);
+                                    cmdUpdateLot.Parameters.AddWithValue("@LotId", lot.LotId);
+                                    cmdUpdateLot.ExecuteNonQuery();
+                                }
+
+                                // Lưu chi tiết đơn hàng theo lô hàng
+                                string insertDetail = @"
+        INSERT INTO OrderDetail (OrderId, BanhId, Quantity, BatchCode)
+        VALUES (@OrderId, @BanhId, @Quantity, @BatchCode)";
+                                using (SqlCommand cmdDetail = new SqlCommand(insertDetail, conn, tran))
+                                {
+                                    cmdDetail.Parameters.AddWithValue("@OrderId", orderId);
+                                    cmdDetail.Parameters.AddWithValue("@BanhId", item.BanhId);
+                                    cmdDetail.Parameters.AddWithValue("@Quantity", toDeduct);
+                                    cmdDetail.Parameters.AddWithValue("@BatchCode", lot.BatchCode);
+                                    cmdDetail.ExecuteNonQuery();
+                                }
+
+                                remaining -= toDeduct;
+                            }
+
+                            // --- Kiểm tra thiếu hàng ---
+                            if (remaining > 0)
+                            {
+                                TempData["Message"] = $"⚠️ Sản phẩm (ID: {item.BanhId}) không đủ hàng trong kho!";
+                            }
+
+                            
+                        }
+
+                        // ✅ 6. Xóa giỏ hàng sau khi thanh toán
+                        string deleteCart = "DELETE FROM Cart WHERE AccountId=@AccountId";
+                        using (SqlCommand cmd = new SqlCommand(deleteCart, conn, tran))
+                        {
+                            cmd.Parameters.AddWithValue("@AccountId", accountId.Value);
+                            cmd.ExecuteNonQuery();
+                        }
+
+                        tran.Commit();
+                    }
+                    catch (Exception ex)
+                    {
+                        tran.Rollback();
+                        TempData["Message"] = "❌ Lỗi khi xác nhận đơn hàng: " + ex.Message;
+                        return RedirectToAction("Cart", "Banh");
                     }
                 }
-
-                // ✅ 4. Tạo đơn hàng
-                string insertOrder = "INSERT INTO [Order] (AccountId, CreatedAt) VALUES (@AccountId, @CreatedAt); SELECT SCOPE_IDENTITY();";
-                SqlCommand cmdOrder = new SqlCommand(insertOrder, conn);
-                cmdOrder.Parameters.AddWithValue("@AccountId", accountId.Value);
-                cmdOrder.Parameters.AddWithValue("@CreatedAt", DateTime.Now);
-                int orderId = Convert.ToInt32(cmdOrder.ExecuteScalar());
-
-                // ✅ 5. Lưu chi tiết và trừ kho theo hạn sử dụng gần nhất
-                foreach (var item in cartItems)
-                {
-                    // --- Lưu chi tiết đơn hàng ---
-                    string insertDetail = "INSERT INTO OrderDetail (OrderId, BanhId, Quantity) VALUES (@OrderId, @BanhId, @Quantity)";
-                    SqlCommand cmdDetail = new SqlCommand(insertDetail, conn);
-                    cmdDetail.Parameters.AddWithValue("@OrderId", orderId);
-                    cmdDetail.Parameters.AddWithValue("@BanhId", item.BanhId);
-                    cmdDetail.Parameters.AddWithValue("@Quantity", item.Quantity);
-                    cmdDetail.ExecuteNonQuery();
-
-                    // --- Lấy danh sách lô hàng của bánh ---
-                    string selectLots = "SELECT Id, SoLuong FROM Inventory WHERE BanhId=@BanhId ORDER BY HanSuDung ASC, Id ASC";
-                    SqlCommand cmdLots = new SqlCommand(selectLots, conn);
-                    cmdLots.Parameters.AddWithValue("@BanhId", item.BanhId);
-
-                    List<(int LotId, int SoLuong)> lots = new List<(int, int)>();
-                    using (var readerLots = cmdLots.ExecuteReader())
-                    {
-                        while (readerLots.Read())
-                            lots.Add((readerLots.GetInt32(0), readerLots.GetInt32(1)));
-                    }
-
-                    int remaining = item.Quantity;
-
-                    // --- Trừ kho theo lô gần hết hạn ---
-                    foreach (var lot in lots)
-                    {
-                        if (remaining <= 0) break;
-
-                        int toDeduct = Math.Min(remaining, lot.SoLuong);
-                        string updateLot = "UPDATE Inventory SET SoLuong = SoLuong - @Qty WHERE Id=@LotId";
-                        SqlCommand cmdUpdateLot = new SqlCommand(updateLot, conn);
-                        cmdUpdateLot.Parameters.AddWithValue("@Qty", toDeduct);
-                        cmdUpdateLot.Parameters.AddWithValue("@LotId", lot.LotId);
-                        cmdUpdateLot.ExecuteNonQuery();
-
-                        remaining -= toDeduct;
-                    }
-
-                    // --- Nếu không đủ hàng ---
-                    if (remaining > 0)
-                    {
-                        TempData["Message"] = $"⚠️ Sản phẩm (ID: {item.BanhId}) không đủ hàng trong kho!";
-                    }
-
-                    // (Tuỳ chọn) Xoá các lô trống sau khi trừ hết
-                    string deleteEmptyLots = "DELETE FROM Inventory WHERE SoLuong <= 0";
-                    new SqlCommand(deleteEmptyLots, conn).ExecuteNonQuery();
-                }
-
-                // ✅ 6. Xoá giỏ hàng sau khi thanh toán
-                string deleteCart = "DELETE FROM Cart WHERE AccountId=@AccountId";
-                SqlCommand cmdDelete = new SqlCommand(deleteCart, conn);
-                cmdDelete.Parameters.AddWithValue("@AccountId", accountId.Value);
-                cmdDelete.ExecuteNonQuery();
             }
 
             TempData["Message"] = "✅ Đơn hàng đã được xác nhận và tồn kho đã được cập nhật theo FIFO!";
             return RedirectToAction("Index", "Banh");
         }
+
         [HttpPost]
         public IActionResult UpdateQuantity(int cartId, int quantity)
         {

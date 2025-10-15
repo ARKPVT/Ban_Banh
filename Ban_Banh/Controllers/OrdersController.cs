@@ -16,7 +16,6 @@ namespace Ban_Banh.Controllers
             _connectionString = configuration.GetConnectionString("BanBanhDB");
         }
 
-        // Hiển thị tất cả đơn hàng với sản phẩm
         public IActionResult Index()
         {
             var orders = new List<OrderWithProductsViewModel>();
@@ -24,16 +23,34 @@ namespace Ban_Banh.Controllers
             using (SqlConnection conn = new SqlConnection(_connectionString))
             {
                 conn.Open();
+
                 string sql = @"
-                    SELECT 
-                        o.Id AS OrderId, o.AccountId, o.Status, o.CreatedAt, o.UpdatedAt,
-                        a.FullName, a.Email, a.Phone, a.Address,
-                        b.TenBanh, od.Quantity, b.Gia
-                    FROM [Order] o
-                    INNER JOIN Account a ON o.AccountId = a.Id
-                    INNER JOIN OrderDetail od ON od.OrderId = o.Id
-                    INNER JOIN Banh b ON od.BanhId = b.Id
-                    ORDER BY o.CreatedAt DESC";
+            SELECT 
+                o.Id AS OrderId,
+                o.AccountId,
+                o.Status,
+                o.CreatedAt,
+                o.UpdatedAt,
+                a.FullName,
+                a.Email,
+                a.Phone,
+                a.Address,
+                b.TenBanh,
+                od.Quantity,
+                b.Gia,
+                od.BatchCode,
+                i.WarehouseLocationId,
+                wl.MaViTri AS WarehouseLocation,
+                wl.TenKhu AS WarehouseZone,
+                s.TenNhaCungCap AS SupplierName
+            FROM [Order] o
+            INNER JOIN Account a ON o.AccountId = a.Id
+            INNER JOIN OrderDetail od ON od.OrderId = o.Id
+            INNER JOIN Banh b ON od.BanhId = b.Id
+            LEFT JOIN Inventory i ON i.BanhId = b.Id AND (od.BatchCode IS NULL OR i.BatchCode = od.BatchCode)
+            LEFT JOIN Supplier s ON i.SupplierId = s.Id
+            LEFT JOIN WarehouseLocation wl ON i.WarehouseLocationId = wl.Id
+            ORDER BY o.CreatedAt DESC";
 
                 using (SqlCommand cmd = new SqlCommand(sql, conn))
                 using (SqlDataReader reader = cmd.ExecuteReader())
@@ -65,7 +82,11 @@ namespace Ban_Banh.Controllers
                         {
                             TenBanh = reader["TenBanh"].ToString(),
                             Quantity = (int)reader["Quantity"],
-                            Gia = (decimal)reader["Gia"]
+                            Gia = (decimal)reader["Gia"],
+                            BatchCode = reader["BatchCode"]?.ToString(),
+                            SupplierName = reader["SupplierName"]?.ToString(),
+                            WarehouseLocation = reader["WarehouseLocation"]?.ToString(),
+                            WarehouseZone = reader["WarehouseZone"]?.ToString()
                         });
                     }
 
@@ -75,6 +96,7 @@ namespace Ban_Banh.Controllers
 
             return View(orders);
         }
+
 
         // Cập nhật trạng thái đơn hàng
         [HttpPost]

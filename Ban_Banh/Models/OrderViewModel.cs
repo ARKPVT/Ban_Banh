@@ -20,8 +20,14 @@ namespace Ban_Banh.Models
     public class OrderProductViewModel
     {
         public string TenBanh { get; set; }
+        public int BanhId { get; set; }
         public int Quantity { get; set; }
         public decimal Gia { get; set; }
+        // Bổ sung thêm các thông tin cần thiết để chuẩn bị hàng
+        public string BatchCode { get; set; }           // Mã lô hàng
+        public string SupplierName { get; set; }        // Tên nhà cung cấp
+        public string WarehouseLocation { get; set; }   // Mã vị trí kho
+        public string WarehouseZone { get; set; }       // Tên khu kho
     }
 
 }

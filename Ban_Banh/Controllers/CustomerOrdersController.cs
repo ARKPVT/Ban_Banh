@@ -29,9 +29,8 @@ namespace Ban_Banh.Controllers
             {
                 conn.Open();
                 string sql = @"
-                    SELECT 
-                        o.Id AS OrderId, o.AccountId, o.Status, o.CreatedAt, o.UpdatedAt,
-                        b.TenBanh, od.Quantity, b.Gia
+                    SELECT o.Id AS OrderId, o.AccountId, o.Status, o.CreatedAt, o.UpdatedAt,
+                           b.Id AS BanhId, b.TenBanh, od.Quantity, b.Gia
                     FROM [Order] o
                     INNER JOIN Account a ON o.AccountId = a.Id
                     INNER JOIN OrderDetail od ON od.OrderId = o.Id
@@ -45,9 +44,12 @@ namespace Ban_Banh.Controllers
                     using (SqlDataReader reader = cmd.ExecuteReader())
                     {
                         var orderDict = new Dictionary<int, OrderWithProductsViewModel>();
+
                         while (reader.Read())
                         {
                             int orderId = (int)reader["OrderId"];
+                            int banhId = (int)reader["BanhId"];
+
                             if (!orderDict.ContainsKey(orderId))
                             {
                                 orderDict[orderId] = new OrderWithProductsViewModel
@@ -60,13 +62,27 @@ namespace Ban_Banh.Controllers
                                 };
                             }
 
-                            orderDict[orderId].Products.Add(new OrderProductViewModel
+                            var order = orderDict[orderId];
+
+                            // Kiểm tra xem bánh này đã có trong danh sách chưa
+                            var existingProduct = order.Products.FirstOrDefault(p => p.BanhId == banhId);
+
+                            if (existingProduct != null)
                             {
-                                TenBanh = reader["TenBanh"].ToString(),
-                                Quantity = (int)reader["Quantity"],
-                                Gia = (decimal)reader["Gia"]
-                            });
+                                existingProduct.Quantity += (int)reader["Quantity"];
+                            }
+                            else
+                            {
+                                order.Products.Add(new OrderProductViewModel
+                                {
+                                    BanhId = banhId,
+                                    TenBanh = reader["TenBanh"].ToString(),
+                                    Quantity = (int)reader["Quantity"],
+                                    Gia = (decimal)reader["Gia"]
+                                });
+                            }
                         }
+
                         orders = orderDict.Values.ToList();
                     }
                 }
@@ -75,7 +91,7 @@ namespace Ban_Banh.Controllers
             return View(orders);
         }
 
-        // (Tuỳ chọn) hiển thị chi tiết đơn hàng - dùng chung modal cũng được
+        // Chi tiết đơn hàng
         public IActionResult Details(int id)
         {
             var email = HttpContext.Session.GetString("UserEmail");
@@ -88,9 +104,8 @@ namespace Ban_Banh.Controllers
             {
                 conn.Open();
                 string sql = @"
-                    SELECT 
-                        o.Id AS OrderId, o.AccountId, o.Status, o.CreatedAt, o.UpdatedAt,
-                        b.TenBanh, od.Quantity, b.Gia
+                    SELECT o.Id AS OrderId, o.AccountId, o.Status, o.CreatedAt, o.UpdatedAt,
+                           b.Id AS BanhId, b.TenBanh, od.Quantity, b.Gia
                     FROM [Order] o
                     INNER JOIN Account a ON o.AccountId = a.Id
                     INNER JOIN OrderDetail od ON od.OrderId = o.Id
@@ -101,10 +116,13 @@ namespace Ban_Banh.Controllers
                 {
                     cmd.Parameters.AddWithValue("@Email", email);
                     cmd.Parameters.AddWithValue("@OrderId", id);
+
                     using (SqlDataReader reader = cmd.ExecuteReader())
                     {
                         while (reader.Read())
                         {
+                            int banhId = (int)reader["BanhId"];
+
                             if (order == null)
                             {
                                 order = new OrderWithProductsViewModel
@@ -116,18 +134,30 @@ namespace Ban_Banh.Controllers
                                     Products = new List<OrderProductViewModel>()
                                 };
                             }
-                            order.Products.Add(new OrderProductViewModel
+
+                            var existingProduct = order.Products.FirstOrDefault(p => p.BanhId == banhId);
+                            if (existingProduct != null)
                             {
-                                TenBanh = reader["TenBanh"].ToString(),
-                                Quantity = (int)reader["Quantity"],
-                                Gia = (decimal)reader["Gia"]
-                            });
+                                existingProduct.Quantity += (int)reader["Quantity"];
+                            }
+                            else
+                            {
+                                order.Products.Add(new OrderProductViewModel
+                                {
+                                    BanhId = banhId,
+                                    TenBanh = reader["TenBanh"].ToString(),
+                                    Quantity = (int)reader["Quantity"],
+                                    Gia = (decimal)reader["Gia"]
+                                });
+                            }
                         }
                     }
                 }
             }
 
-            if (order == null) return NotFound();
+            if (order == null)
+                return NotFound();
+
             return View(order);
         }
     }

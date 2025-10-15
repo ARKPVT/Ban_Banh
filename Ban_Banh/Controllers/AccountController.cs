@@ -54,9 +54,19 @@ namespace Ban_Banh.Controllers
                         string hashedPassword = HashPassword(model.Password);
 
                         // 3. Lưu thông tin
+                        // ✅ Lấy RoleId mặc định cho User
+                        string roleQuery = "SELECT TOP 1 Id FROM Role WHERE RoleName = 'User'";
+                        int roleId = 0;
+                        using (SqlCommand roleCmd = new SqlCommand(roleQuery, conn))
+                        {
+                            object result = roleCmd.ExecuteScalar();
+                            roleId = result != null ? Convert.ToInt32(result) : 0;
+                        }
+
+                        // ✅ Thêm tài khoản với RoleId
                         string query = @"INSERT INTO Account 
-                                         (FullName, Email, Password, AvatarUrl, Phone, Address) 
-                                         VALUES (@FullName, @Email, @Password, @AvatarUrl, @Phone, @Address)";
+                 (FullName, Email, Password, AvatarUrl, Phone, Address, RoleId) 
+                 VALUES (@FullName, @Email, @Password, @AvatarUrl, @Phone, @Address, @RoleId)";
                         using (SqlCommand cmd = new SqlCommand(query, conn))
                         {
                             cmd.Parameters.AddWithValue("@FullName", model.FullName);
@@ -66,6 +76,7 @@ namespace Ban_Banh.Controllers
                                 "https://tse1.mm.bing.net/th/id/OIP.5yvzs8ftQYN8o7dnmNb-EAHaEK?cb=12&rs=1&pid=ImgDetMain&o=7&rm=3" : model.AvatarUrl);
                             cmd.Parameters.AddWithValue("@Phone", string.IsNullOrEmpty(model.Phone) ? (object)DBNull.Value : model.Phone);
                             cmd.Parameters.AddWithValue("@Address", string.IsNullOrEmpty(model.Address) ? (object)DBNull.Value : model.Address);
+                            cmd.Parameters.AddWithValue("@RoleId", roleId);
 
                             int rows = cmd.ExecuteNonQuery();
                             if (rows <= 0)
@@ -74,6 +85,7 @@ namespace Ban_Banh.Controllers
                                 return View(model);
                             }
                         }
+
 
                         // ✅ Sau khi đăng ký xong -> lấy Id vừa tạo
                         string getIdQuery = "SELECT Id FROM Account WHERE Email = @Email";
@@ -174,17 +186,45 @@ namespace Ban_Banh.Controllers
                                 HttpContext.Session.SetString("Phone", string.IsNullOrEmpty(phone) ? "" : phone);
                                 HttpContext.Session.SetString("Address", string.IsNullOrEmpty(address) ? "" : address);
 
-                                // ✅ Kiểm tra quyền admin
+                                // ✅ Lấy quyền (Role) của tài khoản
                                 reader.Close(); // đóng reader trước khi query khác
-                                string adminQuery = "SELECT COUNT(*) FROM Admin WHERE AccountId = @AccountId";
-                                using (SqlCommand adminCmd = new SqlCommand(adminQuery, conn))
-                                {
-                                    adminCmd.Parameters.AddWithValue("@AccountId", accountId);
-                                    int adminCount = (int)adminCmd.ExecuteScalar();
 
-                                    if (adminCount > 0)
+                                string roleQuery = @"SELECT R.RoleName 
+                     FROM Account A 
+                     LEFT JOIN Role R ON A.RoleId = R.Id
+                     WHERE A.Id = @AccountId";
+                                using (SqlCommand roleCmd = new SqlCommand(roleQuery, conn))
+                                {
+                                    roleCmd.Parameters.AddWithValue("@AccountId", accountId);
+                                    string roleName = roleCmd.ExecuteScalar()?.ToString() ?? "User";
+
+                                    // Lưu RoleName vào Session để tiện dùng sau này
+                                    HttpContext.Session.SetString("RoleName", roleName);
+
+                                    // Điều hướng theo quyền
+                                    if (roleName.Equals("Admin", StringComparison.OrdinalIgnoreCase))
                                     {
                                         TempData["Message"] = "Đăng nhập thành công! (Admin)";
+                                        return RedirectToAction("Index", "Dashboard");
+                                    }
+                                    else if (roleName.Equals("Kho", StringComparison.OrdinalIgnoreCase))
+                                    {
+                                        TempData["Message"] = "Đăng nhập thành công! (Kho)";
+                                        return RedirectToAction("Index", "Kho");
+                                    }
+                                    else if (roleName.Equals("Bếp", StringComparison.OrdinalIgnoreCase))
+                                    {
+                                        TempData["Message"] = "Đăng nhập thành công! (Bếp)";
+                                        return RedirectToAction("Index", "Bep");
+                                    }
+                                    else if (roleName.Equals("Ship", StringComparison.OrdinalIgnoreCase))
+                                    {
+                                        TempData["Message"] = "Đăng nhập thành công! (Ship)";
+                                        return RedirectToAction("Index", "Ship");
+                                    }
+                                    else if (roleName.Equals("Order", StringComparison.OrdinalIgnoreCase))
+                                    {
+                                        TempData["Message"] = "Đăng nhập thành công! (Order)";
                                         return RedirectToAction("Index", "Orders");
                                     }
                                     else
@@ -193,6 +233,7 @@ namespace Ban_Banh.Controllers
                                         return RedirectToAction("Index", "Banh");
                                     }
                                 }
+
                             }
                             else
                             {
