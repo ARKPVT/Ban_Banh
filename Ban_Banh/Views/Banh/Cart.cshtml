@@ -40,20 +40,14 @@ else
                     <td>@item.Banh.TenBanh</td>
                     <td>@item.Banh.Gia.ToString("N0")₫</td>
                     <td>
-                        <div class="input-group" style="max-width:150px;">
-                            <a asp-action="DecreaseQuantity" asp-route-cartId="@item.Id" class="btn btn-outline-secondary">-</a>
-
-                            <input type="number"
-                                   class="form-control text-center quantity-input"
-                                   data-cart-id="@item.Id"
-                                   min="1"
-                                   value="@item.Quantity" />
-
-                            <a asp-action="IncreaseQuantity" asp-route-cartId="@item.Id" class="btn btn-outline-secondary">+</a>
-                        </div>
-
+                        <button type="button" onclick="changeQuantity(@item.Id, -1)">-</button>
+                        <input id="quantity-@item.Id" type="number"
+                               min="1"
+                               value="@item.Quantity"
+                               onchange="updateCart(this, @item.Id)" />
+                        <button type="button" onclick="changeQuantity(@item.Id, 1)">+</button>
                     </td>
-                   
+
                     <td>@((item.Banh.Gia * item.Quantity).ToString("N0"))₫</td>
                     <td>
                         <a asp-action="RemoveFromCart" asp-route-cartId="@item.Id" class="btn btn-danger">Xóa</a>
@@ -64,7 +58,6 @@ else
         <tfoot>
             <tr>
                 <td colspan="4" class="text-end"><strong>Tổng cộng:</strong></td>
-               
                 <td colspan="2">
                     <strong>@(Model.Sum(x => x.Banh.Gia * x.Quantity).ToString("N0"))₫</strong>
                 </td>
@@ -137,7 +130,6 @@ else
                                         <td>@item.Banh.TenBanh</td>
                                         <td>@item.Quantity</td>
                                         <td>@item.Banh.Gia.ToString("N0")₫</td>
-                                        <!-- ✅ FIXED -->
                                         <td>@((item.Banh.Gia * item.Quantity).ToString("N0"))₫</td>
                                     </tr>
                                 }
@@ -145,7 +137,6 @@ else
                             <tfoot>
                                 <tr>
                                     <td colspan="3" class="text-end"><strong>Tổng cộng:</strong></td>
-                                    <!-- ✅ FIXED -->
                                     <td><strong>@(Model.Sum(x => x.Banh.Gia * x.Quantity).ToString("N0"))₫</strong></td>
                                 </tr>
                             </tfoot>
@@ -163,6 +154,7 @@ else
 </div>
 
 <script>
+    // Kiểm tra form checkout
     document.getElementById("checkoutForm").addEventListener("submit", function (e) {
         let valid = true;
         let requiredFields = document.querySelectorAll(".required-field");
@@ -190,49 +182,56 @@ else
             alert("⚠️ Vui lòng điền đầy đủ thông tin giao hàng trước khi xác nhận!");
         }
     });
-</script>
-<script>
-    document.querySelectorAll('.quantity-input').forEach(input => {
-        input.addEventListener('keypress', function (e) {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                updateQuantity(this);
-            }
-        });
 
-        input.addEventListener('blur', function () {
-            updateQuantity(this);
-        });
-    });
+    // Hàm cập nhật số lượng sản phẩm trong giỏ
+    function updateCart(input, cartId) {
+        const value = parseInt(input.value);
 
-    function updateQuantity(input) {
-        const cartId = input.getAttribute('data-cart-id');
-        const value = input.value.trim();
-
-        // Kiểm tra dữ liệu nhập tay
-        if (!/^[1-9]\d*$/.test(value)) {
-            alert('⚠️ Số lượng phải là số nguyên dương!');
+        // Kiểm tra nhanh giá trị hợp lệ trước khi gửi
+        if (isNaN(value) || value <= 0) {
+            alert("⚠️ Số lượng phải là số nguyên dương!");
             input.value = 1;
             return;
         }
 
-        // Gửi AJAX tới controller
-        fetch(`/Banh/UpdateQuantity`, {
+        // Gửi request AJAX
+        fetch(`/Banh/UpdateCartAjax`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded'
             },
-            body: `cartId=${cartId}&quantity=${value}`
-        })
-            .then(response => {
-                if (!response.ok) {
-                    return response.text().then(text => { throw new Error(text); });
-                }
-                location.reload();
+            body: new URLSearchParams({
+                cartId: cartId,
+                quantity: value
             })
-            .catch(error => {
-                alert("❌ " + error.message);
-                location.reload();
-            });
+        })
+        .then(async (response) => {
+            const text = await response.text();
+
+            if (!response.ok) {
+                // Server trả về lỗi (400, 404, ...)
+                alert(text || "Có lỗi xảy ra!");
+                // Chờ 500ms rồi reload 1 lần duy nhất
+                setTimeout(() => location.reload(), 500);
+                throw new Error(text);
+            }
+
+            // Thành công -> reload để hiển thị lại giỏ hàng
+            location.reload();
+        })
+        .catch(err => {
+            console.error("❌ Lỗi updateCart:", err);
+        });
+    }
+
+    // Tăng/giảm số lượng nhanh
+    function changeQuantity(cartId, delta) {
+        const input = document.getElementById(`quantity-${cartId}`);
+        let newValue = parseInt(input.value || "1") + delta;
+
+        if (newValue < 1) newValue = 1;
+        input.value = newValue;
+
+        updateCart(input, cartId);
     }
 </script>

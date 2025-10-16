@@ -238,45 +238,59 @@ namespace Ban_Banh.Controllers
         // ===============================
         // 5️⃣ Cập nhật giỏ hàng
         // ===============================
-        
+
         [HttpPost]
-        public IActionResult UpdateCart(int cartId, int quantity)
+        public IActionResult UpdateCartAjax(int cartId, int quantity)
         {
-            if (quantity < 1) quantity = 1;
+            if (quantity <= 0)
+                return BadRequest("⚠️ Số lượng phải là số nguyên dương!");
 
             using (SqlConnection conn = new SqlConnection(_connectionString))
             {
                 conn.Open();
 
-                // 🔹 Lấy BanhId tương ứng
                 string getBanhSql = "SELECT BanhId FROM Cart WHERE Id=@CartId";
                 SqlCommand getBanhCmd = new SqlCommand(getBanhSql, conn);
                 getBanhCmd.Parameters.AddWithValue("@CartId", cartId);
-                int banhId = Convert.ToInt32(getBanhCmd.ExecuteScalar());
+                object banhObj = getBanhCmd.ExecuteScalar();
 
-                // 🔹 Lấy tồn kho
+                if (banhObj == null)
+                    return NotFound("❌ Không tìm thấy sản phẩm trong giỏ hàng.");
+
+                int banhId = Convert.ToInt32(banhObj);
+
                 string checkStockSql = "SELECT SUM(SoLuong) FROM Inventory WHERE BanhId=@BanhId";
                 SqlCommand checkStockCmd = new SqlCommand(checkStockSql, conn);
                 checkStockCmd.Parameters.AddWithValue("@BanhId", banhId);
                 int soLuongTon = Convert.ToInt32(checkStockCmd.ExecuteScalar() ?? 0);
 
+                if (soLuongTon <= 0)
+                    return BadRequest("❌ Sản phẩm đã hết hàng!");
 
                 if (quantity > soLuongTon)
                 {
+                    string fixSql = "UPDATE Cart SET Quantity=@Quantity WHERE Id=@CartId";
+                    SqlCommand fixCmd = new SqlCommand(fixSql, conn);
+                    fixCmd.Parameters.AddWithValue("@Quantity", soLuongTon);
+                    fixCmd.Parameters.AddWithValue("@CartId", cartId);
+                    fixCmd.ExecuteNonQuery();
+
                     TempData["Message"] = $"⚠️ Chỉ còn {soLuongTon} sản phẩm trong kho!";
+                    return BadRequest(TempData.Peek("Message"));
                 }
-                else
-                {
-                    string sql = "UPDATE Cart SET Quantity = @Quantity WHERE Id = @CartId";
-                    SqlCommand cmd = new SqlCommand(sql, conn);
-                    cmd.Parameters.AddWithValue("@Quantity", quantity);
-                    cmd.Parameters.AddWithValue("@CartId", cartId);
-                    cmd.ExecuteNonQuery();
-                }
+
+
+                string sql = "UPDATE Cart SET Quantity=@Quantity WHERE Id=@CartId";
+                SqlCommand cmd = new SqlCommand(sql, conn);
+                cmd.Parameters.AddWithValue("@Quantity", quantity);
+                cmd.Parameters.AddWithValue("@CartId", cartId);
+                cmd.ExecuteNonQuery();
             }
 
-            return RedirectToAction("Cart");
+            return Ok();
         }
+
+
 
 
         public IActionResult RemoveFromCart(int cartId)
@@ -610,49 +624,7 @@ namespace Ban_Banh.Controllers
             return RedirectToAction("Index", "Banh");
         }
 
-        [HttpPost]
-        public IActionResult UpdateQuantity(int cartId, int quantity)
-        {
-            if (quantity <= 0)
-                return BadRequest("Số lượng phải là số nguyên dương!");
-
-            using (SqlConnection conn = new SqlConnection(_connectionString))
-            {
-                conn.Open();
-
-                // 🔹 Lấy thông tin sản phẩm trong giỏ
-                string getCartSql = "SELECT BanhId FROM Cart WHERE Id = @CartId";
-                SqlCommand getCartCmd = new SqlCommand(getCartSql, conn);
-                getCartCmd.Parameters.AddWithValue("@CartId", cartId);
-                object banhObj = getCartCmd.ExecuteScalar();
-
-                if (banhObj == null)
-                    return NotFound();
-
-                int banhId = Convert.ToInt32(banhObj);
-
-                // 🔹 Kiểm tra tồn kho
-                string checkStockSql = "SELECT SUM(SoLuong) FROM Inventory WHERE BanhId = @BanhId";
-                SqlCommand checkStockCmd = new SqlCommand(checkStockSql, conn);
-                checkStockCmd.Parameters.AddWithValue("@BanhId", banhId);
-                int soLuongTon = Convert.ToInt32(checkStockCmd.ExecuteScalar() ?? 0);
-
-                if (soLuongTon <= 0)
-                    return BadRequest("Sản phẩm đã hết hàng!");
-
-                if (quantity > soLuongTon)
-                    return BadRequest($"Chỉ còn {soLuongTon} sản phẩm trong kho!");
-
-                // 🔹 Cập nhật giỏ hàng
-                string updateSql = "UPDATE Cart SET Quantity = @Quantity WHERE Id = @CartId";
-                SqlCommand updateCmd = new SqlCommand(updateSql, conn);
-                updateCmd.Parameters.AddWithValue("@Quantity", quantity);
-                updateCmd.Parameters.AddWithValue("@CartId", cartId);
-                updateCmd.ExecuteNonQuery();
-            }
-
-            return Ok();
-        }
+        
         // Chi tiết sản phẩm
         public IActionResult Details(int id)
         {
