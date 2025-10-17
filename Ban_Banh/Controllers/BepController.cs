@@ -7,11 +7,11 @@ using System.Linq;
 
 namespace Ban_Banh.Controllers
 {
-    public class OrdersController : Controller
+    public class BepController : Controller
     {
         private readonly string _connectionString;
 
-        public OrdersController(IConfiguration configuration)
+        public BepController(IConfiguration configuration)
         {
             _connectionString = configuration.GetConnectionString("BanBanhDB");
         }
@@ -50,7 +50,7 @@ namespace Ban_Banh.Controllers
             LEFT JOIN Inventory i ON i.BanhId = b.Id AND (od.BatchCode IS NULL OR i.BatchCode = od.BatchCode)
             LEFT JOIN Supplier s ON i.SupplierId = s.Id
             LEFT JOIN WarehouseLocation wl ON i.WarehouseLocationId = wl.Id
-            WHERE o.Status = 'Pending'
+            WHERE o.Status = 'Processing'
             ORDER BY o.CreatedAt DESC";
 
                 using (SqlCommand cmd = new SqlCommand(sql, conn))

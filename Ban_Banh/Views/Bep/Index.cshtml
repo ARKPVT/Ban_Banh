@@ -1,14 +1,14 @@
 ﻿@model List<Ban_Banh.Models.OrderWithProductsViewModel>
 
 @{
-    ViewData["Title"] = "Quản lý đơn hàng";
-    Layout = "~/Views/Shared/_Layout_Employee_Orders.cshtml";
+    ViewData["Title"] = "Chuẩn Bị Đơn Hàng";
+    Layout = "~/Views/Shared/_Layout_Employee_Bep.cshtml";
 }
 
 <div class="container-fluid mt-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2 class="fw-bold text-primary">
-            📦 Quản lý đơn hàng
+            📦 Chuẩn Bị Đơn Hàng
         </h2>
         <div class="input-group w-25">
             <input type="text" id="searchBox" class="form-control form-control-sm" placeholder="🔍 Tìm kiếm đơn hàng...">
@@ -44,7 +44,7 @@
                                   class="d-flex justify-content-center align-items-center gap-1 update-status-form">
                                 <input type="hidden" name="orderId" value="@order.OrderId" />
                                 @{
-                                    var allStatuses = new[] { "Pending", "Processing" };//, "Shipped", "Completed", "Cancelled"
+                                    var allStatuses = new[] { "Processing", "Shipped" };//"Pending",  "Completed", "Cancelled"
                                     var currentIndex = Array.IndexOf(allStatuses, order.Status);
                                 }
                                 <select name="status" class="form-select form-select-sm text-center border-0 bg-light fw-semibold status-select">
