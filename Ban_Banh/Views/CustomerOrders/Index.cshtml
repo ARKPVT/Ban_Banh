@@ -33,7 +33,7 @@
                             <td><strong>#@order.OrderId</strong></td>
                             <td>@order.CreatedAt.ToString("dd/MM/yyyy HH:mm")</td>
                             <td>
-                                <span class="badge bg-@GetStatusColor(order.Status)">
+                                <span class="badge @GetStatusBadgeClass(order.Status)">
                                     @order.Status
                                 </span>
                             </td>
@@ -56,21 +56,22 @@
 </div>
 
 @functions {
-    string GetStatusColor(string status)
+    string GetStatusBadgeClass(string status)
     {
+        // Giúp badge có màu nền + màu chữ tương phản tốt
         return status switch
         {
-            "Pending" => "secondary",
-            "Processing" => "info",
-            "Shipped" => "warning",
-            "Completed" => "success",
-            "Cancelled" => "danger",
-            _ => "light"
+            "Pending" => "bg-secondary text-white",
+            "Processing" => "bg-info text-dark",
+            "Shipped" => "bg-warning text-dark",
+            "Completed" => "bg-success text-white",
+            "Cancelled" => "bg-danger text-white",
+            _ => "bg-light text-dark"
         };
     }
 }
 
-<!-- Modal chi tiết đơn hàng (dùng lại logic của admin modal) -->
+<!-- Modal chi tiết đơn hàng -->
 @foreach (var order in Model)
 {
     <div class="modal fade" id="orderDetailModal-@order.OrderId" tabindex="-1" aria-hidden="true">
@@ -82,7 +83,12 @@
                 </div>
 
                 <div class="modal-body p-4">
-                    <p><strong>📦 Trạng thái:</strong> <span class="badge bg-info">@order.Status</span></p>
+                    <p>
+                        <strong>📦 Trạng thái:</strong>
+                        <span class="badge @GetStatusBadgeClass(order.Status)">
+                            @order.Status
+                        </span>
+                    </p>
                     <p><strong>🕓 Ngày đặt:</strong> @order.CreatedAt.ToString("dd/MM/yyyy HH:mm")</p>
                     @if (order.UpdatedAt.HasValue)
                     {

@@ -29,14 +29,16 @@ namespace Ban_Banh.Controllers
             {
                 conn.Open();
                 string sql = @"
-                    SELECT o.Id AS OrderId, o.AccountId, o.Status, o.CreatedAt, o.UpdatedAt,
-                           b.Id AS BanhId, b.TenBanh, od.Quantity, b.Gia
-                    FROM [Order] o
-                    INNER JOIN Account a ON o.AccountId = a.Id
-                    INNER JOIN OrderDetail od ON od.OrderId = o.Id
-                    INNER JOIN Banh b ON od.BanhId = b.Id
-                    WHERE a.Email = @Email
-                    ORDER BY o.CreatedAt DESC";
+                    SELECT o.Id AS OrderId, o.AccountId, s.StatusName AS Status, o.CreatedAt, o.UpdatedAt,
+       b.Id AS BanhId, b.TenBanh, od.Quantity, b.Gia
+FROM [Order] o
+INNER JOIN Account a ON o.AccountId = a.Id
+INNER JOIN OrderDetail od ON od.OrderId = o.Id
+INNER JOIN Banh b ON od.BanhId = b.Id
+INNER JOIN OrderStatus s ON o.StatusId = s.Id
+WHERE a.Email = @Email
+ORDER BY o.CreatedAt DESC
+";
 
                 using (SqlCommand cmd = new SqlCommand(sql, conn))
                 {
@@ -104,13 +106,15 @@ namespace Ban_Banh.Controllers
             {
                 conn.Open();
                 string sql = @"
-                    SELECT o.Id AS OrderId, o.AccountId, o.Status, o.CreatedAt, o.UpdatedAt,
-                           b.Id AS BanhId, b.TenBanh, od.Quantity, b.Gia
-                    FROM [Order] o
-                    INNER JOIN Account a ON o.AccountId = a.Id
-                    INNER JOIN OrderDetail od ON od.OrderId = o.Id
-                    INNER JOIN Banh b ON od.BanhId = b.Id
-                    WHERE a.Email = @Email AND o.Id = @OrderId";
+                    SELECT o.Id AS OrderId, o.AccountId, s.StatusName AS Status, o.CreatedAt, o.UpdatedAt,
+       b.Id AS BanhId, b.TenBanh, od.Quantity, b.Gia
+FROM [Order] o
+INNER JOIN Account a ON o.AccountId = a.Id
+INNER JOIN OrderDetail od ON od.OrderId = o.Id
+INNER JOIN Banh b ON od.BanhId = b.Id
+INNER JOIN OrderStatus s ON o.StatusId = s.Id
+WHERE a.Email = @Email AND o.Id = @OrderId
+";
 
                 using (SqlCommand cmd = new SqlCommand(sql, conn))
                 {

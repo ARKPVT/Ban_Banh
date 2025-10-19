@@ -16,6 +16,7 @@ namespace Ban_Banh.Controllers
             _connectionString = configuration.GetConnectionString("BanBanhDB");
         }
 
+        // ✅ Hiển thị danh sách đơn hàng "Processing"
         public IActionResult Index()
         {
             var orders = new List<OrderWithProductsViewModel>();
@@ -25,33 +26,35 @@ namespace Ban_Banh.Controllers
                 conn.Open();
 
                 string sql = @"
-            SELECT 
-                o.Id AS OrderId,
-                o.AccountId,
-                o.Status,
-                o.CreatedAt,
-                o.UpdatedAt,
-                a.FullName,
-                a.Email,
-                a.Phone,
-                a.Address,
-                b.TenBanh,
-                od.Quantity,
-                b.Gia,
-                od.BatchCode,
-                i.WarehouseLocationId,
-                wl.MaViTri AS WarehouseLocation,
-                wl.TenKhu AS WarehouseZone,
-                s.TenNhaCungCap AS SupplierName
-            FROM [Order] o
-            INNER JOIN Account a ON o.AccountId = a.Id
-            INNER JOIN OrderDetail od ON od.OrderId = o.Id
-            INNER JOIN Banh b ON od.BanhId = b.Id
-            LEFT JOIN Inventory i ON i.BanhId = b.Id AND (od.BatchCode IS NULL OR i.BatchCode = od.BatchCode)
-            LEFT JOIN Supplier s ON i.SupplierId = s.Id
-            LEFT JOIN WarehouseLocation wl ON i.WarehouseLocationId = wl.Id
-            WHERE o.Status = 'Processing'
-            ORDER BY o.CreatedAt DESC";
+                SELECT 
+                    o.Id AS OrderId,
+                    o.AccountId,
+                    os.Id AS StatusId,
+                    os.StatusName AS Status,
+                    o.CreatedAt,
+                    o.UpdatedAt,
+                    a.FullName,
+                    a.Email,
+                    a.Phone,
+                    a.Address,
+                    b.TenBanh,
+                    od.Quantity,
+                    b.Gia,
+                    od.BatchCode,
+                    i.WarehouseLocationId,
+                    wl.MaViTri AS WarehouseLocation,
+                    wl.TenKhu AS WarehouseZone,
+                    s.TenNhaCungCap AS SupplierName
+                FROM [Order] o
+                INNER JOIN Account a ON o.AccountId = a.Id
+                INNER JOIN OrderDetail od ON od.OrderId = o.Id
+                INNER JOIN Banh b ON od.BanhId = b.Id
+                LEFT JOIN Inventory i ON i.BanhId = b.Id AND (od.BatchCode IS NULL OR i.BatchCode = od.BatchCode)
+                LEFT JOIN Supplier s ON i.SupplierId = s.Id
+                LEFT JOIN WarehouseLocation wl ON i.WarehouseLocationId = wl.Id
+                INNER JOIN OrderStatus os ON o.StatusId = os.Id
+                WHERE os.StatusName = N'Processing'
+                ORDER BY o.CreatedAt DESC";
 
                 using (SqlCommand cmd = new SqlCommand(sql, conn))
                 using (SqlDataReader reader = cmd.ExecuteReader())
@@ -72,6 +75,7 @@ namespace Ban_Banh.Controllers
                                 Email = reader["Email"].ToString(),
                                 Phone = reader["Phone"]?.ToString(),
                                 Address = reader["Address"]?.ToString(),
+                                StatusId = (int)reader["StatusId"],
                                 Status = reader["Status"].ToString(),
                                 CreatedAt = (DateTime)reader["CreatedAt"],
                                 UpdatedAt = reader["UpdatedAt"] as DateTime?,
@@ -95,21 +99,47 @@ namespace Ban_Banh.Controllers
                 }
             }
 
+            // ✅ Truyền thêm danh sách trạng thái để dùng cho dropdown
+            ViewBag.AllStatuses = GetAllStatuses();
+
             return View(orders);
         }
 
+        private List<OrderStatusViewModel> GetAllStatuses()
+        {
+            var statuses = new List<OrderStatusViewModel>();
+            using (SqlConnection conn = new SqlConnection(_connectionString))
+            {
+                conn.Open();
+                string sql = "SELECT Id, StatusName FROM OrderStatus WHERE Id IN (2, 3) ORDER BY Id";
+                using (SqlCommand cmd = new SqlCommand(sql, conn))
+                using (SqlDataReader reader = cmd.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        statuses.Add(new OrderStatusViewModel
+                        {
+                            Id = (int)reader["Id"],
+                            StatusName = reader["StatusName"].ToString()
+                        });
+                    }
+                }
+            }
+            return statuses;
+        }
 
-        // Cập nhật trạng thái đơn hàng
+
+        // ✅ Cập nhật trạng thái đơn hàng
         [HttpPost]
-        public IActionResult UpdateStatus(int orderId, string status)
+        public IActionResult UpdateStatus(int orderId, int statusId)
         {
             using (SqlConnection conn = new SqlConnection(_connectionString))
             {
                 conn.Open();
-                string sql = "UPDATE [Order] SET Status=@Status, UpdatedAt=GETDATE() WHERE Id=@Id";
+                string sql = "UPDATE [Order] SET StatusId=@StatusId, UpdatedAt=GETDATE() WHERE Id=@Id";
                 using (SqlCommand cmd = new SqlCommand(sql, conn))
                 {
-                    cmd.Parameters.AddWithValue("@Status", status);
+                    cmd.Parameters.AddWithValue("@StatusId", statusId);
                     cmd.Parameters.AddWithValue("@Id", orderId);
                     cmd.ExecuteNonQuery();
                 }
