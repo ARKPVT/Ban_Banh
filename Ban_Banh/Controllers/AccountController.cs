@@ -210,7 +210,7 @@ namespace Ban_Banh.Controllers
                                     else if (roleName.Equals("Kho", StringComparison.OrdinalIgnoreCase))
                                     {
                                         TempData["Message"] = "Đăng nhập thành công! (Kho)";
-                                        return RedirectToAction("Index", "Kho");
+                                        return RedirectToAction("Index", "Inventory");
                                     }
                                     else if (roleName.Equals("Bep", StringComparison.OrdinalIgnoreCase))
                                     {

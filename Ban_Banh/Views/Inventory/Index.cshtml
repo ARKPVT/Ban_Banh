@@ -1,7 +1,7 @@
 ﻿@model IEnumerable<Ban_Banh.Models.Inventory>
 @{
     ViewData["Title"] = "Quản lý nhập hàng";
-    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+    Layout = "~/Views/Shared/_Layout_Employee_Kho.cshtml";
     var banhList = ViewBag.BanhList as List<SelectListItem>;
     var supplierList = ViewBag.SupplierList as List<SelectListItem>;
     var locationList = ViewBag.LocationList as List<SelectListItem>;
