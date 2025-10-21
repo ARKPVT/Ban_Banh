@@ -164,8 +164,15 @@ namespace Ban_Banh.Controllers
         // 🧺 POST: Nhập thêm hàng
         // ==========================
         [HttpPost]
-        public IActionResult Import(int banhId, int soLuong, DateTime? ngaySanXuat, DateTime? hanSuDung, int? supplierId, int? warehouseLocationId)
+        public IActionResult Import(
+            int banhId,
+            int soLuong,
+            DateTime? ngaySanXuat,
+            DateTime? hanSuDung,
+            int? supplierId,
+            int? warehouseLocationId)
         {
+            // 🧾 1️⃣ Kiểm tra đầu vào
             if (soLuong <= 0)
             {
                 TempData["Error"] = "Số lượng phải lớn hơn 0!";
@@ -184,13 +191,18 @@ namespace Ban_Banh.Controllers
                 return RedirectToAction(nameof(Index));
             }
 
+            // 📦 2️⃣ SQL: Thêm hàng + Lấy ID mới bằng SCOPE_IDENTITY() (an toàn với trigger)
             string sql = @"
-                INSERT INTO Inventory (BanhId, SoLuong, NgaySanXuat, HanSuDung, SupplierId, WarehouseLocationId, LastUpdated)
-                VALUES (@BanhId, @SoLuong, @NgaySanXuat, @HanSuDung, @SupplierId, @WarehouseLocationId, GETDATE());
-            ";
+        INSERT INTO Inventory (BanhId, SoLuong, NgaySanXuat, HanSuDung, SupplierId, WarehouseLocationId, LastUpdated)
+        VALUES (@BanhId, @SoLuong, @NgaySanXuat, @HanSuDung, @SupplierId, @WarehouseLocationId, GETDATE());
+        SELECT CAST(SCOPE_IDENTITY() AS INT);
+    ";
+
+            int newInventoryId = 0;
 
             try
             {
+                // 🧠 3️⃣ Thực thi lệnh SQL
                 using (SqlConnection conn = new SqlConnection(_connectionString))
                 using (SqlCommand cmd = new SqlCommand(sql, conn))
                 {
@@ -202,19 +214,81 @@ namespace Ban_Banh.Controllers
                     cmd.Parameters.AddWithValue("@WarehouseLocationId", (object)warehouseLocationId ?? DBNull.Value);
 
                     conn.Open();
-                    cmd.ExecuteNonQuery();
+
+                    object result = cmd.ExecuteScalar();
+                    if (result == null || result == DBNull.Value)
+                    {
+                        TempData["Error"] = "Không thể lấy ID của lô hàng mới. Kiểm tra lại bảng Inventory!";
+                        return RedirectToAction(nameof(Index));
+                    }
+
+                    newInventoryId = Convert.ToInt32(result);
                 }
 
-                TempData["Success"] = "Đã nhập hàng thành công!";
+                _logger.LogInformation($"✅ Nhập hàng thành công. InventoryId mới: {newInventoryId}");
+
+                // 🕒 4️⃣ Chờ trigger SQL hoàn tất tạo ProductInstance
+                bool success = WaitForTriggerCompletion(newInventoryId, soLuong);
+
+                if (!success)
+                {
+                    TempData["Warning"] = $"Đã nhập hàng (Lô #{newInventoryId}) nhưng trigger tạo sản phẩm chưa hoàn tất! Vui lòng kiểm tra lại sau.";
+                }
+                else
+                {
+                    // 🧩 5️⃣ Sinh mã QR cho toàn bộ bánh trong lô
+                    var qrHelper = new Ban_Banh.Helpers.QRHelper(_connectionString);
+                    qrHelper.GenerateQRCodeForBatch(newInventoryId);
+
+                    TempData["Success"] = $"Đã nhập hàng và sinh mã QR thành công (Lô #{newInventoryId}).";
+                }
             }
             catch (Exception ex)
             {
+                // 💥 6️⃣ Bắt lỗi và ghi log
                 _logger.LogError(ex, "Lỗi khi nhập hàng");
                 TempData["Error"] = _showDetailedErrors ? ex.Message : "Có lỗi xảy ra khi nhập hàng!";
             }
 
             return RedirectToAction(nameof(Index));
         }
+
+        // ======================================
+        // 🧩 HÀM PHỤ: Chờ trigger SQL hoàn thành
+        // ======================================
+        private bool WaitForTriggerCompletion(int inventoryId, int expectedCount)
+        {
+            int retry = 0;
+            int actualCount = 0;
+
+            while (retry < 20) // Tối đa 20 lần (tức 10 giây)
+            {
+                try
+                {
+                    using (SqlConnection conn = new SqlConnection(_connectionString))
+                    using (SqlCommand cmd = new SqlCommand(
+                        "SELECT COUNT(*) FROM ProductInstance WHERE InventoryId = @InventoryId", conn))
+                    {
+                        cmd.Parameters.AddWithValue("@InventoryId", inventoryId);
+                        conn.Open();
+                        actualCount = Convert.ToInt32(cmd.ExecuteScalar());
+                    }
+
+                    if (actualCount >= expectedCount)
+                        return true;
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, $"⚠️ Lỗi khi kiểm tra trigger cho InventoryId={inventoryId}");
+                }
+
+                System.Threading.Thread.Sleep(500); // đợi 0.5 giây rồi thử lại
+                retry++;
+            }
+
+            return false;
+        }
+
 
         // ==========================
         // 🔹 API: Lấy danh sách Nhà cung cấp theo Bánh
