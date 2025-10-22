@@ -164,5 +164,82 @@ WHERE a.Email = @Email AND o.Id = @OrderId
 
             return View(order);
         }
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult Complete(int id)
+        {
+            var email = HttpContext.Session.GetString("UserEmail");
+            if (email == null)
+                return RedirectToAction("Login", "Account");
+
+            int rows;
+            using (var conn = new SqlConnection(_connectionString))
+            {
+                conn.Open();
+                // Chỉ cập nhật đơn của chính user này và đang Shipped
+                var sql = @"
+UPDATE o
+SET o.StatusId = (SELECT Id FROM OrderStatus WHERE StatusName = N'Completed'),
+    o.UpdatedAt = GETDATE()
+FROM [Order] o
+INNER JOIN Account a ON a.Id = o.AccountId
+WHERE o.Id = @OrderId
+  AND a.Email = @Email
+  AND o.StatusId = (SELECT Id FROM OrderStatus WHERE StatusName = N'Shipped');";
+
+                using (var cmd = new SqlCommand(sql, conn))
+                {
+                    cmd.Parameters.AddWithValue("@OrderId", id);
+                    cmd.Parameters.AddWithValue("@Email", email);
+                    rows = cmd.ExecuteNonQuery();
+                }
+            }
+
+            if (rows > 0)
+                TempData["Success"] = $"Đơn #{id} đã được chuyển sang 'Completed'. Cảm ơn bạn!";
+            else
+                TempData["Error"] = "Không thể cập nhật. Có thể đơn không thuộc bạn hoặc không ở trạng thái 'Shipped'.";
+
+            return RedirectToAction(nameof(Index));
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult Cancel(int id)
+        {
+            var email = HttpContext.Session.GetString("UserEmail");
+            if (email == null)
+                return RedirectToAction("Login", "Account");
+
+            int rows;
+            using (var conn = new SqlConnection(_connectionString))
+            {
+                conn.Open();
+                // Chỉ cập nhật đơn của chính user này và đang Shipped
+                var sql = @"
+UPDATE o
+SET o.StatusId = (SELECT Id FROM OrderStatus WHERE StatusName = N'Cancelled'),
+    o.UpdatedAt = GETDATE()
+FROM [Order] o
+INNER JOIN Account a ON a.Id = o.AccountId
+WHERE o.Id = @OrderId
+  AND a.Email = @Email
+  AND o.StatusId = (SELECT Id FROM OrderStatus WHERE StatusName = N'Shipped');";
+
+                using (var cmd = new SqlCommand(sql, conn))
+                {
+                    cmd.Parameters.AddWithValue("@OrderId", id);
+                    cmd.Parameters.AddWithValue("@Email", email);
+                    rows = cmd.ExecuteNonQuery();
+                }
+            }
+
+            if (rows > 0)
+                TempData["Success"] = $"Đơn #{id} đã được chuyển sang 'Cancelled'.";
+            else
+                TempData["Error"] = "Không thể hủy. Có thể đơn không thuộc bạn hoặc không ở trạng thái 'Shipped'.";
+
+            return RedirectToAction(nameof(Index));
+        }
     }
 }

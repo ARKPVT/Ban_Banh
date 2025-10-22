@@ -1,0 +1,139 @@
+﻿@model List<Ban_Banh.Models.DriverOrderVM>
+@{
+    ViewData["Title"] = "Đơn giao của tài xế";
+    Layout = "~/Views/Shared/_Layout_Employee_Ship.cshtml";
+}
+
+<h2 class="mb-3">Đơn cần giao</h2>
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success">@TempData["Success"]</div>
+}
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger">@TempData["Error"]</div>
+}
+
+@if (Model == null || !Model.Any())
+{
+    <div class="alert alert-info">Chưa có đơn cần giao.</div>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table table-bordered table-striped align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th style="white-space:nowrap;">Order #</th>
+                    <th>Trạng thái</th>
+                    <th>Khách hàng</th>
+                    <th>Liên hệ</th>
+                    <th>Địa chỉ</th>
+                    <th>Thời gian</th>
+                    <th>Chi tiết</th>
+                    <th style="width:180px;">Thao tác</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var o in Model)
+                {
+                    // Gộp item theo Banh (bỏ qua lô)
+                    var groupedItems = o.Items
+                    .GroupBy(it => new { it.BanhId, it.TenBanh, it.Gia })
+                    .Select(g => new
+                    {
+                        g.Key.BanhId,
+                        g.Key.TenBanh,
+                        g.Key.Gia,
+                        Quantity = g.Sum(x => x.Quantity)
+                    })
+                    .ToList();
+
+                    <tr>
+                        <td style="white-space:nowrap;">#@o.OrderId</td>
+
+                        <td>
+                            <span class="badge bg-@(o.StatusName == "ReadyToShip" ? "warning" : o.StatusName == "Shipped" ? "primary" : "secondary")">
+                                @o.StatusName
+                            </span>
+                            @if (o.DriverId.HasValue)
+                            {
+                                <div class="text-muted small mt-1">
+                                    Tài xế: @o.DriverName (#@o.DriverId)
+                                </div>
+                            }
+                        </td>
+
+                        <td>@o.CustomerName</td>
+
+                        <td class="text-break">
+                            @o.CustomerPhone<br />
+                            <span class="text-muted small">@o.CustomerEmail</span>
+                        </td>
+
+                        <td class="text-break">@o.CustomerAddress</td>
+
+                        <td style="white-space:nowrap;">
+                            Tạo: @o.CreatedAt.ToString("dd/MM/yyyy HH:mm")
+                            @if (o.UpdatedAt.HasValue)
+                            {
+                                <div class="text-muted small">Cập nhật: @o.UpdatedAt.Value.ToString("dd/MM/yyyy HH:mm")</div>
+                            }
+                        </td>
+
+                        <td>
+                            <ul class="mb-0">
+                                @foreach (var it in groupedItems)
+                                {
+                                    <li>
+                                        <strong>@it.TenBanh</strong> × @it.Quantity
+                                        <span class="text-muted small">
+                                            (@String.Format("{0:#,0}đ", it.Gia))
+                                        </span>
+                                        @* KHÔNG hiển thị Batch / Supplier / Kho cho tài xế *@
+                                    </li>
+                                }
+                            </ul>
+                        </td>
+
+                        <td>
+                            @if (o.StatusName == "ReadyToShip")
+                            {
+                                <form asp-action="Assign" asp-controller="Driver" method="post" class="d-inline">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="orderId" value="@o.OrderId" />
+                                    <button type="submit" class="btn btn-sm btn-primary">
+                                        Nhận đơn
+                                    </button>
+                                </form>
+                            }
+                            else if (o.StatusName == "Shipped")
+                            {
+                                <form asp-action="Cancel" asp-controller="Driver" method="post" class="d-inline"
+                                      onsubmit="return confirm('Bạn chắc muốn báo lỗi (hủy) đơn #@o.OrderId ?');">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="orderId" value="@o.OrderId" />
+                                    <button type="submit" class="btn btn-sm btn-danger">
+                                        Báo lỗi (Hủy)
+                                    </button>
+                                </form>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+<style>
+    /* Chống vỡ layout khi dữ liệu dài */
+    .table td, .table th {
+        vertical-align: middle;
+    }
+
+    .text-break {
+        word-break: break-word;
+    }
+</style>

@@ -1,7 +1,9 @@
 ﻿@model IEnumerable<Ban_Banh.Models.Inventory>
+@using Microsoft.AspNetCore.Mvc.Rendering
 @{
     ViewData["Title"] = "Quản lý nhập hàng";
     Layout = "~/Views/Shared/_Layout_Employee_Kho.cshtml";
+
     var banhList = ViewBag.BanhList as List<SelectListItem>;
     var supplierList = ViewBag.SupplierList as List<SelectListItem>;
     var locationList = ViewBag.LocationList as List<SelectListItem>;
@@ -37,6 +39,7 @@
                 <th>Lần cập nhật</th>
                 <th>Ngày sản xuất</th>
                 <th>Hạn sử dụng</th>
+                <th class="text-center">QR</th>
             </tr>
         </thead>
         <tbody>
@@ -45,7 +48,7 @@
                 var danger = item.SoLuong < 10 ? "table-danger" : "";
                 <tr class="@danger text-center">
                     <td class="text-start">@item.TenBanh</td>
-                    <td>@("LO" + item.Id.ToString("0000"))</td>
+                    <td>@("LO_" + item.Id.ToString("00000"))</td>
                     <td class="fw-bold">@item.SoLuong</td>
                     <td>@item.TenNhaCungCap</td>
                     <td>@item.MaViTri</td>
@@ -53,6 +56,26 @@
                     <td>@item.LastUpdated.ToString("dd/MM/yyyy HH:mm")</td>
                     <td>@item.NgaySanXuat?.ToString("dd/MM/yyyy")</td>
                     <td>@item.HanSuDung?.ToString("dd/MM/yyyy")</td>
+                    <td class="text-center">
+                        <div class="btn-group" role="group">
+                            <a class="btn btn-outline-secondary btn-sm"
+                               href="/QRCode/Generate?inventoryId=@item.Id"
+                               title="Tạo/ghi đè QR cho lô này">
+                                <i class="bi bi-qr-code"></i> Tạo QR
+                            </a>
+                            <a class="btn btn-outline-success btn-sm"
+                               href="/QRCode/DownloadZip?inventoryId=@item.Id"
+                               title="Tải toàn bộ QR dạng ZIP">
+                                <i class="bi bi-download"></i> Tải ZIP
+                            </a>
+                            <button type="button"
+                                    class="btn btn-outline-primary btn-sm"
+                                    onclick="openQrModal(@item.Id)"
+                                    title="Xem và tải từng ảnh QR">
+                                <i class="bi bi-images"></i> Xem/Tải
+                            </button>
+                        </div>
+                    </td>
                 </tr>
             }
         </tbody>
@@ -76,9 +99,12 @@
                         <label class="form-label fw-bold">Nhà cung cấp</label>
                         <select name="supplierId" id="supplierDropdown" class="form-select" required>
                             <option value="">-- Chọn nhà cung cấp --</option>
-                            @foreach (var s in supplierList)
+                            @if (supplierList != null)
                             {
-                                <option value="@s.Value">@s.Text</option>
+                                foreach (var s in supplierList)
+                                {
+                                    <option value="@s.Value">@s.Text</option>
+                                }
                             }
                         </select>
                     </div>
@@ -88,9 +114,12 @@
                         <label class="form-label fw-bold">Loại bánh</label>
                         <select name="banhId" id="banhDropdown" class="form-select" required>
                             <option value="">-- Chọn bánh --</option>
-                            @foreach (var b in banhList)
+                            @if (banhList != null)
                             {
-                                <option value="@b.Value">@b.Text</option>
+                                foreach (var b in banhList)
+                                {
+                                    <option value="@b.Value">@b.Text</option>
+                                }
                             }
                         </select>
                     </div>
@@ -100,9 +129,12 @@
                         <label class="form-label fw-bold">Vị trí kho</label>
                         <select name="warehouseLocationId" id="locationDropdown" class="form-select" required>
                             <option value="">-- Chọn vị trí kho --</option>
-                            @foreach (var l in locationList)
+                            @if (locationList != null)
                             {
-                                <option value="@l.Value">@l.Text</option>
+                                foreach (var l in locationList)
+                                {
+                                    <option value="@l.Value">@l.Text</option>
+                                }
                             }
                         </select>
                     </div>
@@ -141,6 +173,39 @@
     </div>
 </div>
 
+<!-- Modal: Khu vực tải xuống QR -->
+<div class="modal fade" id="qrModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content shadow-lg border-0 rounded-4">
+            <div class="modal-header bg-dark text-white">
+                <h5 class="modal-title fw-bold">
+                    Mã QR của lô <span id="qrModalBatch"></span>
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="qrAlert" class="alert alert-warning d-none"></div>
+
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div>
+                        <small class="text-muted">Nhấp vào ảnh để mở tab mới.</small>
+                    </div>
+                    <div>
+                        <a id="btnDownloadAllZip" class="btn btn-primary" target="_blank" rel="noopener">
+                            <i class="bi bi-archive"></i> Tải toàn bộ (ZIP)
+                        </a>
+                    </div>
+                </div>
+
+                <div id="qrGrid" class="row g-3"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @section Scripts {
     <script>
         document.addEventListener("DOMContentLoaded", function () {
@@ -153,6 +218,7 @@
             // 🧁 Load toàn bộ bánh
             async function loadAllBanh() {
                 const res = await fetch("/Inventory/GetBanhListAll");
+                if (!res.ok) return;
                 const data = await res.json();
                 banhSelect.innerHTML = '<option value="">-- Chọn bánh --</option>';
                 data.forEach(b => {
@@ -166,6 +232,7 @@
             // 🏭 Load toàn bộ nhà cung cấp
             async function loadAllSuppliers() {
                 const res = await fetch("/Inventory/GetSupplierListAll");
+                if (!res.ok) return;
                 const data = await res.json();
                 supplierSelect.innerHTML = '<option value="">-- Chọn nhà cung cấp --</option>';
                 data.forEach(s => {
@@ -179,6 +246,7 @@
             // 📦 Load toàn bộ vị trí kho
             async function loadAllLocations() {
                 const res = await fetch("/Inventory/GetWarehouseLocationListAll");
+                if (!res.ok) return;
                 const data = await res.json();
                 locationSelect.innerHTML = '<option value="">-- Chọn vị trí kho --</option>';
                 data.forEach(l => {
@@ -192,6 +260,7 @@
             // 🧁 Load NCC theo bánh
             async function loadSuppliersByBanh(banhId, keepValue = null) {
                 const res = await fetch(`/Inventory/GetSuppliersByBanh?banhId=${banhId}`);
+                if (!res.ok) return;
                 const data = await res.json();
                 supplierSelect.innerHTML = '<option value="">-- Chọn nhà cung cấp --</option>';
                 data.forEach(s => {
@@ -208,6 +277,7 @@
             // 🏭 Load bánh theo NCC
             async function loadBanhBySupplier(supplierId, keepValue = null) {
                 const res = await fetch(`/Inventory/GetBanhBySupplier?supplierId=${supplierId}`);
+                if (!res.ok) return;
                 const data = await res.json();
                 banhSelect.innerHTML = '<option value="">-- Chọn bánh --</option>';
                 data.forEach(b => {
@@ -261,10 +331,73 @@
                 }
             });
 
-            // 🚀 Lần đầu mở modal → load dữ liệu gốc
+            // 🚀 Lần đầu mở modal nhập → load dữ liệu gốc
             loadAllBanh();
             loadAllSuppliers();
             loadAllLocations();
         });
+
+        // ============ KHU VỰC QR ============
+
+        async function openQrModal(inventoryId) {
+            const modalEl = document.getElementById('qrModal');
+            const modal = new bootstrap.Modal(modalEl);
+            const batchSpan = document.getElementById('qrModalBatch');
+            const grid = document.getElementById('qrGrid');
+            const alertBox = document.getElementById('qrAlert');
+            const btnZip = document.getElementById('btnDownloadAllZip');
+
+            batchSpan.textContent = `LO_${String(inventoryId).padStart(5, '0')}`;
+            grid.innerHTML = '';
+            alertBox.classList.add('d-none');
+            btnZip.href = `/QRCode/DownloadZip?inventoryId=${inventoryId}`;
+
+            try {
+                const res = await fetch(`/QRCode/List?inventoryId=${inventoryId}`);
+                if (!res.ok) {
+                    const text = await res.text();
+                    alertBox.textContent = text || 'Không thể tải danh sách QR.';
+                    alertBox.classList.remove('d-none');
+                    new bootstrap.Modal(modalEl).show();
+                    return;
+                }
+                const files = await res.json();
+                if (!files || files.length === 0) {
+                    alertBox.textContent = 'Chưa có mã QR cho lô này. Hãy bấm "Tạo QR" trước.';
+                    alertBox.classList.remove('d-none');
+                    modal.show();
+                    return;
+                }
+
+                files.forEach(f => {
+                    const downloadUrl = `/QRCode/Download?inventoryId=${inventoryId}&fileName=${encodeURIComponent(f.name)}`;
+                    const col = document.createElement('div');
+                    col.className = 'col-6 col-md-4 col-lg-3';
+
+                    col.innerHTML = `
+                        <div class="card h-100 shadow-sm">
+                            <a href="${f.url}" target="_blank" rel="noopener">
+                                <img src="${f.url}" class="card-img-top" alt="${f.name}">
+                            </a>
+                            <div class="card-body p-2">
+                                <div class="small text-truncate" title="${f.name}">${f.name}</div>
+                                <div class="d-grid mt-2">
+                                    <a class="btn btn-outline-primary btn-sm" href="${downloadUrl}">
+                                        <i class="bi bi-download"></i> Tải ảnh
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    grid.appendChild(col);
+                });
+
+                modal.show();
+            } catch (e) {
+                alertBox.textContent = 'Có lỗi khi tải dữ liệu QR.';
+                alertBox.classList.remove('d-none');
+                modal.show();
+            }
+        }
     </script>
 }

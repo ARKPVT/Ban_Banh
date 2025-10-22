@@ -8,6 +8,16 @@
 <h2>@ViewData["Title"]</h2>
 <p><strong>Lưu ý:</strong> Chỉ hiển thị các đơn hàng bánh xe.</p>
 
+@* ===== Banner lỗi SQL nếu có ===== *@
+@if (ViewBag.SqlError != null)
+{
+    <div class="alert alert-danger" role="alert" style="white-space:pre-wrap">
+        <strong>Lỗi cơ sở dữ liệu:</strong>
+        <br />
+        @ViewBag.SqlError
+    </div>
+}
+
 <table class="table table-bordered table-striped">
     <thead>
         <tr>
@@ -20,19 +30,33 @@
         </tr>
     </thead>
     <tbody>
-        @foreach (var item in Model)
+        @if (Model != null && Model.Count > 0)
+        {
+            foreach (var item in Model)
+            {
+                var isEnough = (item?.PreparedCount ?? 0) >= (item?.Quantity ?? 0);
+                <tr>
+                    <td>@item.OrderId</td>
+                    <td>@item.BanhName</td>
+                    <td>@item.Quantity</td>
+                    <td>@item.PreparedCount</td>
+                    <td>@item.StatusName</td>
+                    <td>
+                        <button class="btn btn-sm @(isEnough ? "btn-secondary disabled" : "btn-success")"
+                                onclick="openCameraModal(@item.OrderDetailId)"
+                                title="@(isEnough ? "Đã đủ số lượng" : "Nhập hàng")"
+                                aria-disabled="@(isEnough ? "true" : "false")"
+                                @(isEnough ? "disabled" : "")>
+                            Nhập hàng
+                        </button>
+                    </td>
+                </tr>
+            }
+        }
+        else
         {
             <tr>
-                <td>@item.OrderId</td>
-                <td>@item.BanhName</td>
-                <td>@item.Quantity</td>
-                <td>@item.PreparedCount</td>
-                <td>@item.StatusName</td>
-                <td>
-                    <button class="btn btn-success btn-sm" onclick="openCameraModal(@item.OrderDetailId)">
-                        Nhập hàng
-                    </button>
-                </td>
+                <td colspan="6" class="text-center text-muted">Không có dữ liệu để hiển thị.</td>
             </tr>
         }
     </tbody>
@@ -62,12 +86,10 @@
         currentOrderDetailId = orderDetailId;
         const modal = document.getElementById("cameraModal");
         const select = document.getElementById("cameraSelect");
-        const preview = document.getElementById("cameraPreview");
 
         modal.style.display = "block";
         select.innerHTML = "<option>Đang tải danh sách camera...</option>";
 
-        // Chờ modal hiển thị xong để html5-qrcode render chính xác
         setTimeout(() => {
             Html5Qrcode.getCameras().then(devices => {
                 select.innerHTML = "";
@@ -97,9 +119,6 @@
 
     // Khởi động quét
     async function startScan(cameraId) {
-        const preview = document.getElementById("cameraPreview");
-
-        // Dừng camera cũ nếu đang chạy
         if (html5QrCode) {
             try {
                 await html5QrCode.stop();
@@ -118,9 +137,7 @@
                 stopScan();
                 savePreparedProduct(qrCodeMessage);
             },
-            errorMessage => {
-                // không log lỗi nhỏ liên tục để tránh lag console
-            }
+            _ => { /* giảm log lỗi lặt vặt */ }
         ).catch(err => {
             console.error("Lỗi khởi động quét:", err);
             alert("Không thể khởi động quét camera.");
@@ -155,13 +172,13 @@
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
             body: `orderDetailId=${currentOrderDetailId}&productInstanceId=${productInstanceId}`
         })
-        .then(res => res.json())
-        .then(data => {
-            if (data.success) {
+        .then(async res => {
+            const data = await res.json().catch(() => ({}));
+            if (data && data.success) {
                 alert("Đã nhập sản phẩm thành công!");
                 location.reload();
             } else {
-                alert(data.message || "Lỗi không xác định!");
+                alert(data.message || "Đã có lỗi khi lưu dữ liệu.");
             }
         })
         .catch(err => {

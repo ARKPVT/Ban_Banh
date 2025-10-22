@@ -1,0 +1,118 @@
+﻿<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - Ban_Banh Nhân viên Ship</title>
+
+    <!-- CSS -->
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/Ban_Banh.styles.css" asp-append-version="true" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css">
+
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        main {
+            flex: 1;
+            padding: 20px;
+        }
+
+        footer {
+            background: #f8f9fa;
+            padding: 15px 0;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header / Navbar -->
+    <header>
+        <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm">
+            <div class="container">
+                <a class="navbar-brand fw-bold text-warning" asp-area="" asp-controller="Driver" asp-action="Index">
+                    ARKDS
+                </a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#employeeNavbar"
+                        aria-controls="employeeNavbar" aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+
+                <div class="collapse navbar-collapse" id="employeeNavbar">
+                    <ul class="navbar-nav ms-auto">
+
+                        <li class="nav-item">
+                            <a class="nav-link" asp-controller="Driver" asp-action="Index">
+                                <i class="bi bi-speedometer2 me-1"></i>Ship
+                            </a>
+                        </li>
+
+                  
+                        <li class="nav-item">
+                            <a class="nav-link" asp-controller="Inventory" asp-action="MyOrders">
+                                <i class="bi bi-basket2 me-1"></i>Nhập Hàng
+                            </a>
+                        </li>
+
+                        <li class="nav-item">
+                            <a class="nav-link" asp-controller="PreparedProduct" asp-action="Index">
+                                <i class="bi bi-basket2 me-1"></i>Xuất hàng
+                            </a>
+                        </li>
+
+
+                        <!-- Lịch làm việc -->
+                        <li class="nav-item">
+                            <a class="nav-link" asp-controller="Schedule" asp-action="MySchedule">
+                                <i class="bi bi-calendar-week me-1"></i>Lịch làm việc
+                            </a>
+                        </li>
+
+                        <!-- Thống kê cá nhân -->
+                        <li class="nav-item">
+                            <a class="nav-link" asp-controller="EmployeeStats" asp-action="MyStats">
+                                <i class="bi bi-bar-chart-line me-1"></i>Hiệu suất cá nhân
+                            </a>
+                        </li>
+
+                        <!-- Tài khoản -->
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" id="employeeDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="bi bi-person-circle me-1"></i>@Context.Session.GetString("FullName") ?? "Nhân viên"
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="employeeDropdown">
+                                <li><a class="dropdown-item" asp-controller="Account" asp-action="Profile_emp">Hồ sơ cá nhân</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item text-danger" asp-controller="Account" asp-action="Logout">Đăng xuất</a></li>
+                            </ul>
+                        </li>
+
+                    </ul>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <!-- Main content -->
+    <main role="main">
+        @RenderBody()
+    </main>
+
+    <!-- Footer -->
+    <footer>
+        <p>&copy; 2025 Ban_Banh - Khu vực Nhân viên. All rights reserved.</p>
+    </footer>
+
+    <!-- JS -->
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>
