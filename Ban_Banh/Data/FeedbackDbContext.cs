@@ -1,32 +1,13 @@
-using Ban_Banh.Models;
 using Microsoft.EntityFrameworkCore;
+using Ban_Banh.Models;
 
-namespace Ban_Banh.Data;
-
-public class FeedbackDbContext : DbContext
+namespace Ban_Banh.Data
 {
-    public FeedbackDbContext(DbContextOptions<FeedbackDbContext> options) : base(options) { }
-
-    public DbSet<Feedback> Feedbacks => Set<Feedback>();
-    public DbSet<FeedbackImage> FeedbackImages => Set<FeedbackImage>();
-
-    protected override void OnModelCreating(ModelBuilder b)
+    public class FeedbackDbContext : DbContext
     {
-        b.Entity<Feedback>(e =>
-        {
-            e.HasKey(x => x.Id);
-            e.Property(x => x.Message).IsRequired();
-            e.HasMany(x => x.Images)
-                .WithOne(x => x.Feedback!)
-                .HasForeignKey(x => x.FeedbackId)
-                .OnDelete(DeleteBehavior.Cascade);
-            e.HasIndex(x => x.CreatedAt);
-        });
+        public FeedbackDbContext(DbContextOptions<FeedbackDbContext> options) : base(options) { }
 
-        b.Entity<FeedbackImage>(e =>
-        {
-            e.HasKey(x => x.Id);
-            e.HasIndex(x => new { x.FeedbackId });
-        });
+        public DbSet<Feedback> Feedback { get; set; }
+        public DbSet<FeedbackImage> FeedbackImage { get; set; }
     }
 }

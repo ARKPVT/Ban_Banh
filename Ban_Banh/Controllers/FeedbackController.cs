@@ -1,121 +1,105 @@
-using System.Text.RegularExpressions;
 using Ban_Banh.Data;
 using Ban_Banh.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
-namespace Ban_Banh.Controllers;
-
-[ApiController]
-[Route("api/[controller]")]
-public class FeedbackController : ControllerBase
+namespace Ban_Banh.Controllers
 {
-    private readonly FeedbackDbContext _db;
-    private readonly IWebHostEnvironment _env;
-
-    // config
-    private const int MAX_FILES = 5;
-    private const int MAX_MB_PER_FILE = 5;
-
-    public FeedbackController(FeedbackDbContext db, IWebHostEnvironment env)
-    {
-        _db = db;
-        _env = env;
-    }
-
-    public class FeedbackCreateDto
+    // Form nhận từ client (multipart/form-data)
+    public class FeedbackForm
     {
         public string? Name { get; set; }
         public string? Email { get; set; }
-        public int? Rating { get; set; }
-        public string? Message { get; set; }
-        public List<IFormFile>? Files { get; set; }
+        public int Rating { get; set; } = 5;
+        public string Message { get; set; } = "";
+        public List<IFormFile>? Files { get; set; } = new();
     }
 
-    [HttpPost]
-    [RequestSizeLimit(20_000_000)] // 20 MB
-    public async Task<IActionResult> Post([FromForm] FeedbackCreateDto dto)
+    [ApiController]
+    [Route("api/[controller]")] // => /api/feedback
+    public class FeedbackController : ControllerBase
     {
-        if (string.IsNullOrWhiteSpace(dto.Message))
-            return BadRequest(new { error = "Vui lòng nhập nội dung góp ý." });
+        private readonly FeedbackDbContext _db;
+        private readonly IWebHostEnvironment _env;
+        private readonly ILogger<FeedbackController> _logger;
 
-        var rating = dto.Rating ?? 5;
-        if (rating < 1 || rating > 5) rating = 5;
-
-        var fb = new Feedback
+        public FeedbackController(
+            FeedbackDbContext db,
+            IWebHostEnvironment env,
+            ILogger<FeedbackController> logger)
         {
-            Name = dto.Name?.Trim(),
-            Email = dto.Email?.Trim(),
-            Rating = rating,
-            Message = dto.Message!.Trim()
-        };
-        _db.Feedbacks.Add(fb);
-        await _db.SaveChangesAsync();
+            _db = db;
+            _env = env;
+            _logger = logger;
+        }
 
-        // Save images
-        var files = dto.Files ?? new List<IFormFile>();
-        if (files.Count > MAX_FILES)
-            return BadRequest(new { error = $"Chỉ được chọn tối đa {MAX_FILES} ảnh." });
-
-        var savedImages = new List<FeedbackImage>();
-        var webRoot = _env.WebRootPath ?? "wwwroot";
-        var uploadRoot = Path.Combine(webRoot, "uploads", "feedback", fb.Id.ToString());
-        Directory.CreateDirectory(uploadRoot);
-
-        foreach (var file in files)
+        // GET /api/feedback/debug (để kiểm tra nhanh DB)
+        [HttpGet("debug")]
+        public async Task<IActionResult> Debug()
         {
-            if (file.Length == 0) continue;
-            if (file.Length > MAX_MB_PER_FILE * 1024L * 1024L)
-                return BadRequest(new { error = $"Ảnh {file.FileName} vượt quá {MAX_MB_PER_FILE}MB." });
+            var count = await _db.Feedback.CountAsync();
+            var imgCount = await _db.FeedbackImage.CountAsync();
+            return Ok(new { ok = true, feedback = count, images = imgCount });
+        }
 
-            if (!file.ContentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase))
-                return BadRequest(new { error = $"Tập tin {file.FileName} không phải ảnh." });
-
-            var ext = Path.GetExtension(file.FileName);
-            var safeName = MakeSafeFileName(Path.GetFileNameWithoutExtension(file.FileName));
-            var newName = $"{safeName}_{Guid.NewGuid():N}{ext}";
-            var savePath = Path.Combine(uploadRoot, newName);
-
-            using (var stream = System.IO.File.Create(savePath))
-                await file.CopyToAsync(stream);
-
-            var url = $"/uploads/feedback/{fb.Id}/{newName}";
-            savedImages.Add(new FeedbackImage
+        // POST /api/feedback
+        [HttpPost]
+        [RequestSizeLimit(20 * 1024 * 1024)]
+        [Consumes("multipart/form-data")]
+        public async Task<IActionResult> Post([FromForm] FeedbackForm form)
+        {
+            try
             {
-                FeedbackId = fb.Id,
-                FileName = newName,
-                ContentType = file.ContentType,
-                Size = file.Length,
-                Url = url
-            });
+                if (string.IsNullOrWhiteSpace(form?.Message))
+                    return BadRequest(new { error = "Message is required" });
+
+                var fb = new Feedback
+                {
+                    Name = form.Name?.Trim(),
+                    Email = form.Email?.Trim(),
+                    Rating = form.Rating <= 0 ? 5 : form.Rating,
+                    Message = form.Message?.Trim(),
+                    CreatedAt = DateTime.UtcNow,
+                };
+
+                // Thư mục lưu ảnh
+                var root = _env.WebRootPath ?? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
+                var saveDir = Path.Combine(root, "uploads", "feedback");
+                Directory.CreateDirectory(saveDir);
+
+                var files = form.Files ?? new List<IFormFile>();
+                foreach (var f in files)
+                {
+                    if (f.Length == 0) continue;
+                    if (!f.ContentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase)) continue;
+
+                    var ext = Path.GetExtension(f.FileName);
+                    var safeName = $"{Guid.NewGuid():N}{ext}";
+                    var fullPath = Path.Combine(saveDir, safeName);
+
+                    using (var fs = System.IO.File.Create(fullPath))
+                        await f.CopyToAsync(fs);
+
+                    var relPath = $"/uploads/feedback/{safeName}";
+                    fb.Images.Add(new FeedbackImage
+                    {
+                        FileName = Path.GetFileName(f.FileName),
+                        FilePath = relPath,            // << thay Url bằng FilePath
+                        FileSize = f.Length,
+                        ContentType = f.ContentType
+                    });
+                }
+
+                _db.Feedback.Add(fb);
+                await _db.SaveChangesAsync();
+
+                return Ok(new { ok = true, id = fb.Id, saved = fb.Images.Count });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "POST /api/feedback failed");
+                return StatusCode(500, new { error = ex.Message, stack = ex.StackTrace });
+            }
         }
-
-        if (savedImages.Count > 0)
-        {
-            _db.FeedbackImages.AddRange(savedImages);
-            await _db.SaveChangesAsync();
-        }
-
-        return Ok(new
-        {
-            id = fb.Id,
-            name = fb.Name,
-            email = fb.Email,
-            rating = fb.Rating,
-            message = fb.Message,
-            createdAt = fb.CreatedAt,
-            images = savedImages.Select(i => new { i.Url, i.FileName, i.Size, i.ContentType })
-        });
-    }
-
-    [HttpGet]
-    public async Task<IActionResult> Count() => Ok(new { ok = true, count = await _db.Feedbacks.CountAsync() });
-
-    private static string MakeSafeFileName(string name)
-    {
-        name = name.Trim();
-        name = Regex.Replace(name, @"[^a-zA-Z0-9\-_]+", "-");
-        if (string.IsNullOrEmpty(name)) name = "img";
-        return name.Length > 40 ? name[..40] : name;
     }
 }
