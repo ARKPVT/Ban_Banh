@@ -29,7 +29,7 @@ namespace Ban_Banh.Controllers
         {
             if (ModelState.IsValid)
             {
-                string connectionString = _configuration.GetConnectionString("BanBanhDB");
+                string? connectionString = _configuration.GetConnectionString("BanBanhDB");
 
                 try
                 {
@@ -136,7 +136,7 @@ namespace Ban_Banh.Controllers
                 return View();
             }
 
-            string connectionString = _configuration.GetConnectionString("BanBanhDB");
+            string? connectionString = _configuration.GetConnectionString("BanBanhDB");
 
             try
             {
@@ -170,11 +170,11 @@ namespace Ban_Banh.Controllers
 
                                 // Nếu tài khoản hoạt động bình thường → cho đăng nhập
                                 int accountId = Convert.ToInt32(reader["Id"]);
-                                string fullName = reader["FullName"].ToString();
-                                string avatarUrl = reader["AvatarUrl"]?.ToString();
-                                string phone = reader["Phone"]?.ToString();
-                                string address = reader["Address"]?.ToString();
-                                string userEmail = reader["Email"].ToString();
+                                string fullName = reader["FullName"]?.ToString() ?? string.Empty;
+                                string avatarUrl = reader["AvatarUrl"] is DBNull or null ? string.Empty : reader["AvatarUrl"]!.ToString()!;
+                                string? phone = reader["Phone"] == DBNull.Value ? null : reader["Phone"]?.ToString();
+                                string? address = reader["Address"] == DBNull.Value ? null : reader["Address"]?.ToString();
+                                string userEmail = reader["Email"] == DBNull.Value ? string.Empty : reader["Email"]!.ToString()!;
 
                                 // ✅ Lưu session
                                 HttpContext.Session.SetInt32("AccountId", accountId);
@@ -265,14 +265,14 @@ namespace Ban_Banh.Controllers
         // GET: /Account/Profile
         public IActionResult Profile()
         {
-            string email = HttpContext.Session.GetString("UserEmail");
+            string? email = HttpContext.Session.GetString("UserEmail");
             if (string.IsNullOrEmpty(email))
             {
                 return RedirectToAction("Login");
             }
 
-            string connectionString = _configuration.GetConnectionString("BanBanhDB");
-            ProfileViewModel account = null;
+            string? connectionString = _configuration.GetConnectionString("BanBanhDB");
+            ProfileViewModel? account = null;
 
             using (SqlConnection conn = new SqlConnection(connectionString))
             {
@@ -288,8 +288,8 @@ namespace Ban_Banh.Controllers
                             account = new ProfileViewModel
                             {
                                 Id = Convert.ToInt32(reader["Id"]),
-                                FullName = reader["FullName"].ToString(),
-                                Email = reader["Email"].ToString(),
+                                FullName = reader["FullName"] == DBNull.Value ? string.Empty : reader["FullName"]!.ToString()!,
+                                Email = reader["Email"] == DBNull.Value ? string.Empty : reader["Email"]!.ToString()!,
                                 AvatarUrl = reader["AvatarUrl"].ToString(),
                                 Phone = reader["Phone"]?.ToString(),
                                 Address = reader["Address"]?.ToString()
@@ -309,7 +309,7 @@ namespace Ban_Banh.Controllers
         {
             if (!ModelState.IsValid) return View(model);
 
-            string connectionString = _configuration.GetConnectionString("BanBanhDB");
+            string? connectionString = _configuration.GetConnectionString("BanBanhDB");
 
             using (SqlConnection conn = new SqlConnection(connectionString))
             {
@@ -365,14 +365,14 @@ namespace Ban_Banh.Controllers
         // GET: /Account/Profile
         public IActionResult Profile_ad()
         {
-            string email = HttpContext.Session.GetString("UserEmail");
+            string? email = HttpContext.Session.GetString("UserEmail");
             if (string.IsNullOrEmpty(email))
             {
                 return RedirectToAction("Login");
             }
 
-            string connectionString = _configuration.GetConnectionString("BanBanhDB");
-            ProfileViewModel account = null;
+            string? connectionString = _configuration.GetConnectionString("BanBanhDB");
+            ProfileViewModel? account = null;
 
             using (SqlConnection conn = new SqlConnection(connectionString))
             {
@@ -388,8 +388,8 @@ namespace Ban_Banh.Controllers
                             account = new ProfileViewModel
                             {
                                 Id = Convert.ToInt32(reader["Id"]),
-                                FullName = reader["FullName"].ToString(),
-                                Email = reader["Email"].ToString(),
+                                FullName = reader["FullName"] == DBNull.Value ? string.Empty : reader["FullName"]!.ToString()!,
+                                Email = reader["Email"] == DBNull.Value ? string.Empty : reader["Email"]!.ToString()!,
                                 AvatarUrl = reader["AvatarUrl"].ToString(),
                                 Phone = reader["Phone"]?.ToString(),
                                 Address = reader["Address"]?.ToString()
@@ -409,7 +409,7 @@ namespace Ban_Banh.Controllers
         {
             if (!ModelState.IsValid) return View(model);
 
-            string connectionString = _configuration.GetConnectionString("BanBanhDB");
+            string? connectionString =  _configuration.GetConnectionString("BanBanhDB");
 
             using (SqlConnection conn = new SqlConnection(connectionString))
             {

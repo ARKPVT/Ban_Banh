@@ -1,0 +1,56 @@
+<div class="modal fade" id="feedbackModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Góp ý</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+      </div>
+
+      <div class="modal-body">
+        <div class="mb-2">
+          <label class="form-label">Tên</label>
+          <input id="fbName" class="form-control">
+        </div>
+        <div class="mb-2">
+          <label class="form-label">Email</label>
+          <input id="fbEmail" type="email" class="form-control">
+        </div>
+        <div class="mb-2">
+          <label class="form-label">Đánh giá (1–5)</label>
+          <input id="fbRating" type="number" min="1" max="5" value="5" class="form-control">
+        </div>
+        <div class="mb-2">
+          <label class="form-label">Nội dung</label>
+          <textarea id="fbMessage" rows="4" class="form-control" placeholder="Nội dung góp ý..."></textarea>
+        </div>
+
+        <div class="mb-2">
+          <label class="form-label">Ảnh đính kèm (kéo-thả hoặc chọn file)</label>
+
+          <!-- vùng drop + click -->
+          <label id="fbDrop" for="fbFiles" class="drop-zone w-100">
+            <div class="small text-muted">
+              Kéo thả ảnh vào đây hoặc bấm để chọn (tối đa 5 ảnh, 5MB/ảnh)
+            </div>
+          </label>
+
+          <!-- input thực -->
+          <input id="fbFiles" type="file" accept="image/*" multiple class="d-none" />
+
+          <!-- xem trước -->
+          <div id="fbPreview" class="d-flex flex-wrap gap-2 mt-2"></div>
+        </div>
+
+        <!-- thông báo trong modal -->
+        <div id="fbAlert" class="alert d-none" role="alert"></div>
+      </div>
+
+      <div class="modal-footer">
+        <button id="fbSend" class="btn btn-primary">
+            <span id="fbSendText">Gửi góp ý</span>
+            <span id="fbSpinner" class="spinner-border spinner-border-sm d-none"></span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
