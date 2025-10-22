@@ -1,4 +1,6 @@
-﻿/* ===== Base (giữ nguyên của bạn) ===== */
+﻿/* =========================
+   Base styles (giữ tối thiểu)
+   ========================= */
 html {
     font-size: 14px;
 }
@@ -9,8 +11,11 @@ html {
     }
 }
 
-.btn:focus, .btn:active:focus, .btn-link.nav-link:focus,
-.form-control:focus, .form-check-input:focus {
+.btn:focus,
+.btn:active:focus,
+.btn-link.nav-link:focus,
+.form-control:focus,
+.form-check-input:focus {
     box-shadow: 0 0 0 0.1rem #fff, 0 0 0 0.25rem #258cfb;
 }
 
@@ -23,20 +28,22 @@ body {
     margin-bottom: 60px;
 }
 
-/* ===== Feedback modal ===== */
+/* =========================
+   Feedback modal (SCOPED)
+   ========================= */
 
-/* tránh icon plugin (Grammarly/Microsoft Editor) che chữ */
+/* Tránh icon/extension (Grammarly/Microsoft Editor) che chữ */
 #feedbackModal textarea {
     padding-right: 56px;
 }
 
-/* vùng drop */
-.drop-zone {
+/* Vùng drop (kéo-thả / click để chọn) */
+#feedbackModal .drop-zone {
     border: 2px dashed #ced4da;
     border-radius: .5rem;
     padding: 1rem;
-    text-align: center;
     background: #f8f9fa;
+    text-align: center;
     cursor: pointer;
     user-select: none;
     min-height: 88px;
@@ -45,24 +52,35 @@ body {
     justify-content: center;
 }
 
-    .drop-zone.dragover {
+    #feedbackModal .drop-zone.dragover {
         border-color: #0d6efd;
         background: #eef5ff;
     }
 
-/* thumbnail */
-.thumb {
+/* Khu vực xem trước ảnh */
+#feedbackModal #fbPreview {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .5rem;
+}
+
+/* Thumbnail */
+#feedbackModal .thumb {
     position: relative;
     display: inline-block;
 }
 
-    .thumb img {
+    #feedbackModal .thumb img {
         height: 80px;
+        width: 80px;
+        object-fit: cover; /* giúp ảnh vuông đẹp */
         border: 1px solid #dee2e6;
         border-radius: .375rem;
+        background: #fff;
     }
 
-    .thumb button {
+    /* Nút xoá ảnh */
+    #feedbackModal .thumb button {
         position: absolute;
         top: -6px;
         right: -6px;
@@ -74,9 +92,15 @@ body {
         background: #dc3545;
         color: #fff;
         font-size: 12px;
+        cursor: pointer;
     }
 
-/* tránh icon plugin (Grammarly...) che chữ trong textarea */
-#feedbackModal textarea {
-    padding-right: 56px;
+        #feedbackModal .thumb button:hover {
+            filter: brightness(0.95);
+        }
+
+/* Trạng thái đang gửi (nếu có disable nút gửi) */
+#feedbackModal .is-sending {
+    opacity: .7;
+    pointer-events: none;
 }
