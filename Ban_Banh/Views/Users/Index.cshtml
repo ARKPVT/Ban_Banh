@@ -1,0 +1,63 @@
+﻿@model IEnumerable<Ban_Banh.Models.UserViewModel>
+
+@{
+    ViewData["Title"] = "Quản lý người dùng";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+}
+
+<div class="container mt-4">
+    <h2 class="mb-4 text-center">Quản lý người dùng</h2>
+
+    <table class="table table-bordered table-striped align-middle">
+        <thead class="table-dark">
+            <tr class="text-center">
+                <th>ID</th>
+                <th>Họ và tên</th>
+                <th>Email</th>
+                <th>Điện thoại</th>
+                <th>Địa chỉ</th>
+                <th>Trạng thái</th>
+                <th>Hành động</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var user in Model)
+            {
+                <tr class="text-center">
+                    <td>@user.Id</td>
+                    <td>@user.FullName</td>
+                    <td>@user.Email</td>
+                    <td>@user.Phone</td>
+                    <td>@user.Address</td>
+                    <td>
+                        @if (user.IsLocked)
+                        {
+                            <span class="badge bg-danger">Bị khóa</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-success">Hoạt động</span>
+                        }
+                    </td>
+                    <td>
+                        <form asp-action="ToggleLock" method="post">
+                            <input type="hidden" name="id" value="@user.Id" />
+                            @if (user.IsLocked)
+                            {
+                                <button type="submit" class="btn btn-sm btn-success">
+                                    <i class="bi bi-unlock"></i> Mở khóa
+                                </button>
+                            }
+                            else
+                            {
+                                <button type="submit" class="btn btn-sm btn-danger">
+                                    <i class="bi bi-lock"></i> Khóa
+                                </button>
+                            }
+                        </form>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>

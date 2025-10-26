@@ -1,0 +1,170 @@
+﻿@model List<Ban_Banh.Models.OrderWithProductsViewModel>
+@{
+    ViewData["Title"] = "Lịch sử đơn hàng của bạn";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container mt-5">
+    <h2 class="mb-4 text-center text-primary">
+        🧾 Lịch sử đơn hàng của bạn
+    </h2>
+
+    @* ===== Banner thông báo kết quả cập nhật ===== *@
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success text-center">@TempData["Success"]</div>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger text-center" style="white-space:pre-wrap">@TempData["Error"]</div>
+    }
+
+    @if (Model == null || !Model.Any())
+    {
+        <div class="alert alert-info text-center">Bạn chưa có đơn hàng nào.</div>
+    }
+    else
+    {
+        <div class="table-responsive shadow-sm">
+            <table class="table table-bordered align-middle text-center">
+                <thead class="table-light">
+                    <tr>
+                        <th>Mã đơn</th>
+                        <th>Ngày đặt</th>
+                        <th>Trạng thái</th>
+                        <th>Tổng tiền</th>
+                        <th>Chi tiết</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var order in Model)
+                    {
+                        <tr>
+                            <td><strong>#@order.OrderId</strong></td>
+                            <td>@order.CreatedAt.ToString("dd/MM/yyyy HH:mm")</td>
+                            <td>
+                                <span class="badge @GetStatusBadgeClass(order.Status)">
+                                    @order.Status
+                                </span>
+                            </td>
+                            <td class="text-success fw-bold">
+                                @order.Products.Sum(p => p.Gia * p.Quantity).ToString("N0")₫
+                            </td>
+                            <td>
+                                <button class="btn btn-sm btn-outline-primary"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#orderDetailModal-@order.OrderId">
+                                    Xem
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+@functions {
+    string GetStatusBadgeClass(string status)
+    {
+        // Màu badge theo trạng thái
+        return status switch
+        {
+            "Pending" => "bg-secondary text-white",
+            "Processing" => "bg-info text-dark",
+            "ReadyToShip" => "bg-primary text-white",
+            "Shipped" => "bg-warning text-dark",
+            "Completed" => "bg-success text-white",
+            "Cancelled" => "bg-danger text-white",
+            _ => "bg-light text-dark"
+        };
+    }
+}
+
+@* ===== Modal chi tiết đơn hàng + hành động khi Shipped ===== *@
+@foreach (var order in Model ?? new List<Ban_Banh.Models.OrderWithProductsViewModel>())
+{
+    <div class="modal fade" id="orderDetailModal-@order.OrderId" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title">🧾 Chi tiết đơn hàng #@order.OrderId</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+
+                <div class="modal-body p-4">
+                    <p>
+                        <strong>📦 Trạng thái:</strong>
+                        <span class="badge @GetStatusBadgeClass(order.Status)">
+                            @order.Status
+                        </span>
+                    </p>
+                    <p><strong>🕓 Ngày đặt:</strong> @order.CreatedAt.ToString("dd/MM/yyyy HH:mm")</p>
+                    @if (order.UpdatedAt.HasValue)
+                    {
+                        <p><strong>🔁 Cập nhật:</strong> @order.UpdatedAt.Value.ToString("dd/MM/yyyy HH:mm")</p>
+                    }
+
+                    <hr />
+
+                    <h6 class="fw-bold mb-3 text-secondary">Danh sách sản phẩm</h6>
+                    <div class="table-responsive">
+                        <table class="table table-bordered text-center">
+                            <thead class="table-light">
+                                <tr>
+                                    <th class="text-start">Tên bánh</th>
+                                    <th>Số lượng</th>
+                                    <th>Đơn giá</th>
+                                    <th>Tổng</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var p in order.Products)
+                                {
+                                    <tr>
+                                        <td class="text-start">@p.TenBanh</td>
+                                        <td>@p.Quantity</td>
+                                        <td>@p.Gia.ToString("N0")₫</td>
+                                        <td>@((p.Gia * p.Quantity).ToString("N0"))₫</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center mt-3">
+                        <div></div>
+                        <div class="text-end">
+                            <strong class="text-danger">💰 Tổng: @order.Products.Sum(p => p.Gia * p.Quantity).ToString("N0")₫</strong>
+                        </div>
+                    </div>
+
+                    @* Nếu đơn đang ở trạng thái Shipped, hiển thị 2 nút hành động *@
+                    @if (order.Status == "Shipped")
+                    {
+                        <hr />
+                        <div class="d-flex gap-2 justify-content-end">
+                            <form asp-action="Complete" asp-controller="CustomerOrders" method="post" class="m-0">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="id" value="@order.OrderId" />
+                                <button type="submit" class="btn btn-success">
+                                    ✅ Tôi đã nhận hàng (Completed)
+                                </button>
+                            </form>
+
+                            <form asp-action="Cancel" asp-controller="CustomerOrders" method="post" class="m-0"
+                                  onsubmit="return confirm('Bạn chắc chắn muốn hủy đơn này?');">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="id" value="@order.OrderId" />
+                                <button type="submit" class="btn btn-outline-danger">
+                                    ❌ Hủy đơn (Cancelled)
+                                </button>
+                            </form>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+}

@@ -1,0 +1,98 @@
+﻿@{
+    ViewBag.Title = "Giới thiệu";
+}
+
+<link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Poppins:wght@300;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/animate.css@4.1.1/animate.min.css" />
+
+<div class="about-section position-relative text-center text-white d-flex align-items-center justify-content-center">
+    <div class="overlay"></div>
+    <div class="content animate__animated animate__fadeInDown">
+        <h1 class="display-4 fw-bold mb-3 font-script">SweetCake Bakery</h1>
+        <p class="lead">Nơi những chiếc bánh kể câu chuyện của tình yêu, niềm vui và hạnh phúc.</p>
+    </div>
+</div>
+
+<div class="container py-5">
+    <div class="row align-items-center mb-5">
+        <div class="col-md-6 animate__animated animate__fadeInLeft">
+            <img src="https://png.pngtree.com/thumb_back/fw800/background/20230526/pngtree-wheels-and-rims-tire-3d-for-car-image_2632632.jpg" alt="Bánh ngọt" class="img-fluid rounded-4 shadow-lg" />
+        </div>
+        <div class="col-md-6 animate__animated animate__fadeInRight">
+            <h2 class="fw-bold text-gradient mb-3">Hành trình của hương vị</h2>
+            <p class="text-muted fs-5">
+                Mỗi chiếc bánh của <strong>SweetCake</strong> là một bản giao hưởng giữa hương thơm và cảm xúc.
+                Chúng tôi bắt đầu từ căn bếp nhỏ, với mong muốn mang lại niềm vui qua những lát bánh ấm nồng.
+            </p>
+            <p class="text-muted fs-5">
+                Ngày hôm nay, chúng tôi vẫn giữ nguyên triết lý đó: làm bánh bằng **trái tim**,
+                để mỗi khách hàng đều cảm nhận được sự ngọt ngào không chỉ ở vị giác, mà cả trong tâm hồn.
+            </p>
+        </div>
+    </div>
+
+    <div class="mission-section py-5 text-center">
+        <h3 class="fw-bold mb-4 text-gradient">Giá trị của chúng tôi</h3>
+        <div class="row g-4">
+            <div class="col-md-4 animate__animated animate__fadeInUp">
+                <div class="p-4 rounded-4 shadow-sm bg-white h-100">
+                    <i class="bi bi-heart-fill fs-1 text-danger"></i>
+                    <h5 class="mt-3 fw-semibold">Tình yêu trong từng chiếc bánh</h5>
+                    <p class="text-muted">Mỗi mẻ bánh được nhào nặn với niềm đam mê và tình yêu chân thành.</p>
+                </div>
+            </div>
+            <div class="col-md-4 animate__animated animate__fadeInUp animate__delay-1s">
+                <div class="p-4 rounded-4 shadow-sm bg-white h-100">
+                    <i class="bi bi-flower1 fs-1 text-pink"></i>
+                    <h5 class="mt-3 fw-semibold">Tinh tế & Sáng tạo</h5>
+                    <p class="text-muted">Luôn đổi mới trong cách trang trí, hương vị và cảm xúc mà bánh mang lại.</p>
+                </div>
+            </div>
+            <div class="col-md-4 animate__animated animate__fadeInUp animate__delay-2s">
+                <div class="p-4 rounded-4 shadow-sm bg-white h-100">
+                    <i class="bi bi-stars fs-1 text-warning"></i>
+                    <h5 class="mt-3 fw-semibold">Chất lượng & Niềm tin</h5>
+                    <p class="text-muted">Chúng tôi tin rằng sự trung thực và tận tâm tạo nên thương hiệu bền vững.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    body {
+        font-family: 'Poppins', sans-serif;
+        background-color: #fffaf9;
+    }
+
+    .font-script {
+        font-family: 'Great Vibes', cursive;
+        font-size: 3rem;
+    }
+
+    .about-section {
+        height: 70vh;
+        background: url('https://th.bing.com/th/id/OIG4.1m2lOXgD93.NfxXPcayK?cb=12&w=1536&h=1024&rs=1&pid=ImgDetMain&o=7&rm=3') center/cover fixed no-repeat;
+        position: relative;
+    }
+
+    .overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.4);
+    }
+
+    .text-gradient {
+        background: linear-gradient(45deg, #ff8fa3, #ff5f6d);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+
+    .mission-section {
+        background-color: #fff1f5;
+        border-radius: 1.5rem;
+    }
+</style>

@@ -1,0 +1,27 @@
+﻿@model Ban_Banh.Models.SupplierProduct
+@{
+    ViewData["Title"] = "Cập nhật Giá Nhập";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+}
+
+<h3>Cập Nhật Bánh Cung Cấp</h3>
+<hr />
+
+<form asp-action="EditProduct" method="post">
+    <input type="hidden" asp-for="Id" />
+    <input type="hidden" asp-for="SupplierId" />
+
+    <div class="mb-3">
+        <label class="form-label">Tên Bánh</label>
+        <input asp-for="TenBanh" class="form-control" readonly />
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Giá Nhập</label>
+        <input asp-for="GiaNhap" class="form-control" />
+        <span asp-validation-for="GiaNhap" class="text-danger"></span>
+    </div>
+
+    <button type="submit" class="btn btn-warning">Cập nhật</button>
+    <a asp-action="Edit" asp-route-id="@Model.SupplierId" class="btn btn-secondary">Hủy</a>
+</form>

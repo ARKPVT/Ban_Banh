@@ -1,0 +1,52 @@
+﻿@model DemoApp.Models.WorkScheduleViewModel
+@{
+
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+}
+<div class="container mt-4">
+    <h2>@(Model?.Id == 0 ? "Thêm lịch làm" : "Chỉnh sửa lịch làm")</h2>
+
+    <form asp-action="@(Model?.Id == 0 ? "Create" : "Edit")" method="post" class="mt-3">
+        @if (Model?.Id != 0)
+        {
+            <input type="hidden" asp-for="Id" />
+        }
+
+        <div class="mb-3">
+            <label asp-for="EmployeeName" class="form-label">Tên nhân viên</label>
+            <input asp-for="EmployeeName" class="form-control" />
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="WorkDate" class="form-label">Ngày làm</label>
+            <input asp-for="WorkDate" type="date" class="form-control" />
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="Shift" class="form-label">Ca làm</label>
+            <select asp-for="Shift" class="form-select">
+                <option value="Ca sáng">Ca sáng</option>
+                <option value="Ca chiều">Ca chiều</option>
+                <option value="Ca tối">Ca tối</option>
+            </select>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="Status" class="form-label">Trạng thái</label>
+            <select asp-for="Status" class="form-select">
+                <option value="Dự kiến">Dự kiến</option>
+                <option value="Đã làm">Đã làm</option>
+                <option value="Trễ">Trễ</option>
+                <option value="Nghỉ">Nghỉ</option>
+            </select>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="Notes" class="form-label">Ghi chú</label>
+            <textarea asp-for="Notes" class="form-control"></textarea>
+        </div>
+
+        <button type="submit" class="btn btn-success">Lưu</button>
+        <a href="/Schedule" class="btn btn-secondary">Quay lại</a>
+    </form>
+</div>

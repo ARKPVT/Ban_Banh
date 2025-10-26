@@ -1,0 +1,237 @@
+﻿@model List<Ban_Banh.Models.Cart>
+@{
+    ViewData["Title"] = "Giỏ Hàng";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var accountFullName = Context.Session.GetString("FullName");
+    var accountEmail = Context.Session.GetString("UserEmail");
+    var accountAvatar = Context.Session.GetString("AvatarUrl") ?? "https://tse1.mm.bing.net/th/id/OIP.5yvzs8ftQYN8o7dnmNb-EAHaEK?cb=12&rs=1&pid=ImgDetMain&o=7&rm=3";
+}
+
+<h2>Giỏ Hàng</h2>
+@if (TempData["Message"] != null)
+{
+    <div class="alert alert-warning text-center mt-2">@TempData["Message"]</div>
+}
+
+@if (Model.Count == 0)
+{
+    <p>🛒 Giỏ hàng của bạn đang trống.</p>
+}
+else
+{
+    <table class="table table-bordered table-striped">
+        <thead>
+            <tr>
+                <th>Hình</th>
+                <th>Tên sản phẩm</th>
+                <th>Giá</th>
+                <th>Số lượng</th>
+                <th>Thành tiền</th>
+                <th>Hành động</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in Model)
+            {
+                <tr>
+                    <td>
+                        <img src="@item.Banh.HinhAnh" alt="@item.Banh.TenBanh" width="80" />
+                    </td>
+                    <td>@item.Banh.TenBanh</td>
+                    <td>@item.Banh.Gia.ToString("N0")₫</td>
+                    <td>
+                        <button type="button" onclick="changeQuantity(@item.Id, -1)">-</button>
+                        <input id="quantity-@item.Id" type="number"
+                               min="1"
+                               value="@item.Quantity"
+                               onchange="updateCart(this, @item.Id)" />
+                        <button type="button" onclick="changeQuantity(@item.Id, 1)">+</button>
+                    </td>
+
+                    <td>@((item.Banh.Gia * item.Quantity).ToString("N0"))₫</td>
+                    <td>
+                        <a asp-action="RemoveFromCart" asp-route-cartId="@item.Id" class="btn btn-danger">Xóa</a>
+                    </td>
+                </tr>
+            }
+        </tbody>
+        <tfoot>
+            <tr>
+                <td colspan="4" class="text-end"><strong>Tổng cộng:</strong></td>
+                <td colspan="2">
+                    <strong>@(Model.Sum(x => x.Banh.Gia * x.Quantity).ToString("N0"))₫</strong>
+                </td>
+            </tr>
+        </tfoot>
+    </table>
+
+    <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#checkoutModal">🛒 Thanh toán</button>
+}
+
+<a asp-action="Index" class="btn btn-secondary">Tiếp tục mua sắm</a>
+
+<!-- Modal Checkout -->
+<div class="modal fade" id="checkoutModal" tabindex="-1" aria-labelledby="checkoutModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="checkoutModalLabel">Xác nhận thanh toán</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <h6>Thông tin giao hàng:</h6>
+
+                    <form id="checkoutForm" asp-action="ConfirmCheckout" method="post">
+                        <div class="mb-2">
+                            <label><strong>Họ tên:</strong></label>
+                            <input type="text" class="form-control required-field" name="FullName"
+                                   value="@Context.Session.GetString("FullName")" placeholder="Nhập họ tên" />
+                        </div>
+
+                        <div class="mb-2">
+                            <label><strong>Email:</strong></label>
+                            <input type="email" class="form-control required-field" name="Email"
+                                   value="@Context.Session.GetString("UserEmail")" placeholder="Nhập email" />
+                        </div>
+
+                        <div class="mb-2">
+                            <label><strong>Số điện thoại:</strong></label>
+                            <input type="text" class="form-control required-field" name="Phone"
+                                   value="@Context.Session.GetString("Phone")" placeholder="Nhập số điện thoại" />
+                        </div>
+
+                        <div class="mb-2">
+                            <label><strong>Địa chỉ:</strong></label>
+                            <textarea class="form-control required-field" name="Address"
+                                      placeholder="Nhập địa chỉ giao hàng">@Context.Session.GetString("Address")</textarea>
+                        </div>
+
+                        <div class="mb-2">
+                            <label><strong>Avatar:</strong></label><br />
+                            <img src="@accountAvatar" width="50" class="rounded" />
+                        </div>
+
+                        <hr />
+                        <h6>Sản phẩm:</h6>
+                        <table class="table table-bordered">
+                            <thead>
+                                <tr>
+                                    <th>Tên sản phẩm</th>
+                                    <th>Số lượng</th>
+                                    <th>Giá</th>
+                                    <th>Thành tiền</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var item in Model)
+                                {
+                                    <tr>
+                                        <td>@item.Banh.TenBanh</td>
+                                        <td>@item.Quantity</td>
+                                        <td>@item.Banh.Gia.ToString("N0")₫</td>
+                                        <td>@((item.Banh.Gia * item.Quantity).ToString("N0"))₫</td>
+                                    </tr>
+                                }
+                            </tbody>
+                            <tfoot>
+                                <tr>
+                                    <td colspan="3" class="text-end"><strong>Tổng cộng:</strong></td>
+                                    <td><strong>@(Model.Sum(x => x.Banh.Gia * x.Quantity).ToString("N0"))₫</strong></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+
+                        <div class="modal-footer">
+                            <button type="submit" class="btn btn-success">✅ Xác nhận</button>
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">❌ Hủy</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Kiểm tra form checkout
+    document.getElementById("checkoutForm").addEventListener("submit", function (e) {
+        let valid = true;
+        let requiredFields = document.querySelectorAll(".required-field");
+
+        requiredFields.forEach(function (input) {
+            if (!input.value.trim()) {
+                input.style.border = "2px solid red";
+                if (!input.nextElementSibling || !input.nextElementSibling.classList.contains("text-danger")) {
+                    let msg = document.createElement("small");
+                    msg.classList.add("text-danger");
+                    msg.textContent = "Vui lòng nhập thông tin này.";
+                    input.parentNode.appendChild(msg);
+                }
+                valid = false;
+            } else {
+                input.style.border = "";
+                if (input.nextElementSibling && input.nextElementSibling.classList.contains("text-danger")) {
+                    input.nextElementSibling.remove();
+                }
+            }
+        });
+
+        if (!valid) {
+            e.preventDefault();
+            alert("⚠️ Vui lòng điền đầy đủ thông tin giao hàng trước khi xác nhận!");
+        }
+    });
+
+    // Hàm cập nhật số lượng sản phẩm trong giỏ
+    function updateCart(input, cartId) {
+        const value = parseInt(input.value);
+
+        // Kiểm tra nhanh giá trị hợp lệ trước khi gửi
+        if (isNaN(value) || value <= 0) {
+            alert("⚠️ Số lượng phải là số nguyên dương!");
+            input.value = 1;
+            return;
+        }
+
+        // Gửi request AJAX
+        fetch(`/Banh/UpdateCartAjax`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            body: new URLSearchParams({
+                cartId: cartId,
+                quantity: value
+            })
+        })
+        .then(async (response) => {
+            const text = await response.text();
+
+            if (!response.ok) {
+                // Server trả về lỗi (400, 404, ...)
+                alert(text || "Có lỗi xảy ra!");
+                // Chờ 500ms rồi reload 1 lần duy nhất
+                setTimeout(() => location.reload(), 500);
+                throw new Error(text);
+            }
+
+            // Thành công -> reload để hiển thị lại giỏ hàng
+            location.reload();
+        })
+        .catch(err => {
+            console.error("❌ Lỗi updateCart:", err);
+        });
+    }
+
+    // Tăng/giảm số lượng nhanh
+    function changeQuantity(cartId, delta) {
+        const input = document.getElementById(`quantity-${cartId}`);
+        let newValue = parseInt(input.value || "1") + delta;
+
+        if (newValue < 1) newValue = 1;
+        input.value = newValue;
+
+        updateCart(input, cartId);
+    }
+</script>

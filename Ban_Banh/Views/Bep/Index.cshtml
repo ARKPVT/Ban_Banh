@@ -1,0 +1,234 @@
+﻿@model List<Ban_Banh.Models.OrderWithProductsViewModel>
+@{
+    ViewData["Title"] = "Chuẩn Bị Đơn Hàng";
+    Layout = "~/Views/Shared/_Layout_Employee_Bep.cshtml";
+
+    var allStatuses = ViewBag.AllStatuses as List<Ban_Banh.Models.OrderStatusViewModel>;
+}
+
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="fw-bold text-primary">📦 Chuẩn Bị Đơn Hàng</h2>
+        <div class="input-group w-25">
+            <input type="text" id="searchBox" class="form-control form-control-sm" placeholder="🔍 Tìm kiếm đơn hàng...">
+        </div>
+    </div>
+
+    <div class="table-responsive shadow rounded-3 border">
+        <table class="table table-hover align-middle mb-0" id="ordersTable">
+            <thead class="table-dark text-center">
+                <tr>
+                    <th>Mã ĐH</th>
+                    <th>Khách hàng</th>
+                    <th>Email</th>
+                    <th>Trạng thái</th>
+                    <th>Ngày đặt</th>
+                    <th>Sản phẩm</th>
+                    <th>Chi tiết</th>
+                </tr>
+            </thead>
+            <tbody class="text-center">
+                @foreach (var order in Model)
+                {
+                    var totalAmount = order.Products.Sum(p => p.Gia * p.Quantity);
+                    <tr>
+                        <td><strong class="text-primary">#@order.OrderId</strong></td>
+                        <td>
+                            <div class="fw-semibold">@order.FullName</div>
+                            <div class="small text-muted">@order.Phone</div>
+                        </td>
+                        <td>@order.Email</td>
+                        <td>
+                            <form asp-action="UpdateStatus" asp-controller="Bep" method="post"
+                                  class="d-flex justify-content-center align-items-center gap-1 update-status-form">
+                                <input type="hidden" name="orderId" value="@order.OrderId" />
+                                <select name="statusId"
+                                        class="form-select form-select-sm text-center border-0 bg-light fw-semibold status-select"
+                                        data-current="@order.StatusId">
+                                    @foreach (var s in allStatuses)
+                                    {
+                                        bool isCurrent = s.Id == order.StatusId;
+                                        <option value="@s.Id" selected="@(isCurrent)">
+                                            @s.StatusName
+                                        </option>
+                                    }
+                                </select>
+                                <button type="submit" class="btn btn-sm btn-outline-primary" title="Cập nhật trạng thái">
+                                    <i class="bi bi-check2"></i>
+                                </button>
+                            </form>
+                        </td>
+                        <td>@order.CreatedAt.ToString("dd/MM/yyyy HH:mm")</td>
+                        <td class="text-start">
+                            <ul class="list-unstyled mb-0">
+                                @foreach (var p in order.Products)
+                                {
+                                    <li class="border-bottom py-1 d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <strong>@p.TenBanh</strong>
+                                            <span class="text-muted">x @p.Quantity</span>
+                                        </div>
+                                        <div class="fw-semibold text-success">
+                                            @((p.Gia * p.Quantity).ToString("N0")) <small class="text-muted">₫</small>
+                                        </div>
+                                    </li>
+                                }
+                            </ul>
+                            <div class="fw-bold text-end text-danger mt-2 border-top pt-1">
+                                Tổng: @totalAmount.ToString("N0") <small class="text-muted">₫</small>
+                            </div>
+                        </td>
+                        <td>
+                            <button class="btn btn-sm btn-info text-white"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#orderDetailModal-@order.OrderId">
+                                <i class="bi bi-eye"></i> Xem
+                            </button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal chi tiết -->
+@foreach (var order in Model)
+{
+    <div class="modal fade" id="orderDetailModal-@order.OrderId" tabindex="-1" aria-labelledby="orderDetailLabel-@order.OrderId" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-xl">
+            <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title" id="orderDetailLabel-@order.OrderId">
+                        🧾 Đơn hàng #@order.OrderId
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+
+                <div class="modal-body bg-light p-4">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <h6 class="fw-bold text-secondary">👤 Thông tin khách hàng</h6>
+                            <p><strong>Họ tên:</strong> @order.FullName</p>
+                            <p><strong>Điện thoại:</strong> @(order.Phone ?? "—")</p>
+                            <p><strong>Email:</strong> @order.Email</p>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="fw-bold text-secondary">📍 Địa chỉ giao hàng</h6>
+                            <p>@(order.Address ?? "—")</p>
+                            <p><strong>Trạng thái:</strong> <span class="badge bg-info">@order.Status</span></p>
+                        </div>
+                    </div>
+
+                    <hr />
+
+                    <h6 class="fw-bold text-secondary mb-3">🧁 Danh sách sản phẩm</h6>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-striped table-bordered align-middle">
+                            <thead class="table-secondary text-center">
+                                <tr>
+                                    <th>Tên bánh</th>
+                                    <th>Số lượng</th>
+                                    <th>Đơn giá</th>
+                                    <th>Tổng</th>
+                                    <th>Nhà cung cấp</th>
+                                    <th>Kho</th>
+                                    <th>Lô</th>
+                                </tr>
+                            </thead>
+                            <tbody class="text-center">
+                                @foreach (var p in order.Products)
+                                {
+                                    <tr>
+                                        <td class="text-start">@p.TenBanh</td>
+                                        <td>@p.Quantity</td>
+                                        <td>@p.Gia.ToString("N0") <small class="text-muted">₫</small></td>
+                                        <td>@((p.Gia * p.Quantity).ToString("N0")) <small class="text-muted">₫</small></td>
+                                        <td>@(p.SupplierName ?? "—")</td>
+                                        <td>@($"{p.WarehouseZone} - {p.WarehouseLocation}")</td>
+                                        <td>@($"{p.BatchCode}")</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="text-end mt-3">
+                        <h5 class="fw-bold text-danger">
+                            💰 Tổng tiền: @order.Products.Sum(p => p.Gia * p.Quantity).ToString("N0") <small class="text-muted">₫</small>
+                        </h5>
+                    </div>
+
+                    <hr />
+                    <div class="text-muted small">
+                        <p>🕓 Ngày đặt: @order.CreatedAt.ToString("dd/MM/yyyy HH:mm")</p>
+                        @if (order.UpdatedAt.HasValue)
+                        {
+                            <p>🔁 Cập nhật: @order.UpdatedAt.Value.ToString("dd/MM/yyyy HH:mm")</p>
+                        }
+                    </div>
+                </div>
+
+                <div class="modal-footer bg-white">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Đóng</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@section Scripts {
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <script>
+        // 🔍 Tìm kiếm đơn hàng
+        document.getElementById("searchBox").addEventListener("keyup", function () {
+            const keyword = this.value.toLowerCase();
+            const rows = document.querySelectorAll("#ordersTable tbody tr");
+            rows.forEach(row => {
+                const text = row.innerText.toLowerCase();
+                row.style.display = text.includes(keyword) ? "" : "none";
+            });
+        });
+
+        // ⚠️ Cảnh báo khi cập nhật trạng thái
+        document.querySelectorAll(".update-status-form").forEach(form => {
+            form.addEventListener("submit", function (e) {
+                e.preventDefault();
+
+                const select = this.querySelector(".status-select");
+                const newStatusId = select.value;
+                const currentStatusId = select.getAttribute("data-current");
+
+                const newStatusText = select.options[select.selectedIndex].text;
+                const currentStatusText = select.querySelector(`option[value="${currentStatusId}"]`).text;
+
+                if (newStatusId === currentStatusId) {
+                    Swal.fire({
+                        icon: "info",
+                        title: "Chưa có thay đổi",
+                        text: "Vui lòng chọn trạng thái khác trước khi cập nhật.",
+                        confirmButtonColor: "#3085d6"
+                    });
+                    return;
+                }
+
+                Swal.fire({
+                    title: "Xác nhận thay đổi?",
+                    html: `Bạn có chắc muốn đổi trạng thái từ <b>"${currentStatusText}"</b> sang <b>"${newStatusText}"</b>?`,
+                    icon: "warning",
+                    showCancelButton: true,
+                    confirmButtonColor: "#3085d6",
+                    cancelButtonColor: "#d33",
+                    confirmButtonText: "Có, cập nhật!",
+                    cancelButtonText: "Hủy"
+                }).then(result => {
+                    if (result.isConfirmed) {
+                        form.submit();
+                    }
+                });
+            });
+        });
+    </script>
+}

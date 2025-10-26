@@ -1,0 +1,41 @@
+﻿@model Ban_Banh.Models.ProfileViewModel
+@{
+    ViewBag.Title = "Hồ sơ cá nhân";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+}
+<div class="container mt-4">
+    <h2>Hồ sơ cá nhân</h2>
+
+    @if (TempData["Message"] != null)
+    {
+        <div class="alert alert-success">@TempData["Message"]</div>
+    }
+
+    <form asp-action="Profile_ad" method="post">
+        <input type="hidden" asp-for="Id" />
+        <div class="mb-3">
+            <label asp-for="FullName" class="form-label"></label>
+            <input asp-for="FullName" class="form-control" />
+            <span asp-validation-for="FullName" class="text-danger"></span>
+        </div>
+        <div class="mb-3">
+            <label asp-for="Email" class="form-label"></label>
+            <input asp-for="Email" class="form-control" readonly />
+        </div>
+        <div class="mb-3">
+            <label asp-for="AvatarUrl" class="form-label"></label>
+            <input asp-for="AvatarUrl" class="form-control" />
+            <img src="@Model.AvatarUrl" class="mt-2" style="width:80px;height:80px;border-radius:50%;" />
+        </div>
+        <div class="mb-3">
+            <label asp-for="Phone" class="form-label"></label>
+            <input asp-for="Phone" class="form-control" />
+            <span asp-validation-for="Phone" class="text-danger"></span>
+        </div>
+        <div class="mb-3">
+            <label asp-for="Address" class="form-label"></label>
+            <input asp-for="Address" class="form-control" />
+        </div>
+        <button type="submit" class="btn btn-primary">Lưu thay đổi</button>
+    </form>
+</div>

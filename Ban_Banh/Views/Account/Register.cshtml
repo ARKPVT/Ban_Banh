@@ -1,0 +1,138 @@
+﻿@model Ban_Banh.Models.Account
+@{
+    ViewBag.Title = "Đăng ký";
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewBag.Title</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <style>
+        body {
+            background-color: #f0f2f5;
+            font-family: Helvetica, Arial, sans-serif;
+        }
+
+        .register-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+        }
+
+        .facebook-card {
+            width: 400px;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,.1);
+            padding: 25px 30px;
+        }
+
+            .facebook-card h2 {
+                text-align: center;
+                font-weight: bold;
+                margin-bottom: 20px;
+                color: #1877f2;
+            }
+
+        .form-control {
+            height: 45px;
+            border-radius: 6px;
+        }
+
+        .btn-facebook {
+            background-color: #1877f2;
+            border: none;
+            color: #fff;
+            font-weight: bold;
+            font-size: 16px;
+            height: 45px;
+            border-radius: 6px;
+            margin-top: 10px;
+        }
+
+            .btn-facebook:hover {
+                background-color: #166fe5;
+            }
+
+        .text-link {
+            display: block;
+            text-align: center;
+            margin-top: 15px;
+            color: #1877f2;
+            font-size: 14px;
+            text-decoration: none;
+        }
+
+            .text-link:hover {
+                text-decoration: underline;
+            }
+    </style>
+</head>
+<body>
+    <div class="register-container">
+        <div class="facebook-card">
+            <h2>Tạo tài khoản mới</h2>
+
+            @if (TempData["Message"] != null)
+            {
+                <div class="alert alert-success">@TempData["Message"]</div>
+            }
+
+            @using (Html.BeginForm("Register", "Account", FormMethod.Post))
+            {
+                @Html.AntiForgeryToken()
+
+                <div class="form-group mb-3">
+                    @Html.TextBoxFor(m => m.FullName, new { @class = "form-control", placeholder = "Họ và tên" })
+                    @Html.ValidationMessageFor(m => m.FullName, "", new { @class = "text-danger" })
+                </div>
+
+                <div class="form-group mb-3">
+                    @Html.TextBoxFor(m => m.Email, new { @class = "form-control", placeholder = "Email" })
+                    @Html.ValidationMessageFor(m => m.Email, "", new { @class = "text-danger" })
+                </div>
+
+                <div class="form-group mb-3">
+                    @Html.PasswordFor(m => m.Password, new { @class = "form-control", placeholder = "Mật khẩu" })
+                    @Html.ValidationMessageFor(m => m.Password, "", new { @class = "text-danger" })
+                </div>
+
+                <div class="form-group mb-3">
+                    @Html.PasswordFor(m => m.ConfirmPassword, new { @class = "form-control", placeholder = "Xác nhận mật khẩu" })
+                    @Html.ValidationMessageFor(m => m.ConfirmPassword, "", new { @class = "text-danger" })
+                </div>
+
+                <!-- Nếu muốn bổ sung hồ sơ -->
+                <div class="form-group mb-3">
+                    @Html.TextBoxFor(m => m.Phone, new { @class = "form-control", placeholder = "Số điện thoại (tùy chọn)" })
+                    @Html.ValidationMessageFor(m => m.Phone, "", new { @class = "text-danger" })
+                </div>
+
+                <div class="form-group mb-3">
+                    @Html.TextBoxFor(m => m.Address, new { @class = "form-control", placeholder = "Địa chỉ (tùy chọn)" })
+                    @Html.ValidationMessageFor(m => m.Address, "", new { @class = "text-danger" })
+                </div>
+
+                <div class="form-group mb-3">
+                    @Html.TextBoxFor(m => m.AvatarUrl, new { @class = "form-control", placeholder = "Link ảnh đại diện (tùy chọn)" })
+                    @Html.ValidationMessageFor(m => m.AvatarUrl, "", new { @class = "text-danger" })
+                </div>
+
+                <button type="submit" class="btn btn-facebook w-100">Đăng ký</button>
+            }
+
+            <a href="/Account/Login" class="text-link">Bạn đã có tài khoản? Đăng nhập</a>
+        </div>
+    </div>
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    @await Html.PartialAsync("_ValidationScriptsPartial")
+</body>
+</html>

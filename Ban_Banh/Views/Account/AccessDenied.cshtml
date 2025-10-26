@@ -1,0 +1,219 @@
+﻿
+@{
+    ViewData["Title"] = "Access Denied - Cyberpunk Deluxe";
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>@ViewData["Title"]</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="~/css/accessdenied.css" />
+</head>
+<body>
+    <div class="bg"></div>
+    <div class="grain"></div>
+
+    <!-- STARTUP SCAN -->
+    <div id="scanOverlay" class="scan-overlay">
+        <div class="scan-box">
+            <div style="display:flex;align-items:center;justify-content:space-between;">
+                <div style="font-family:Orbitron, sans-serif;color:#9ff;font-size:1.05rem">SYSTEM AUTH CHECK</div>
+                <div style="color:#9ff;opacity:0.7;font-size:0.9rem">Night City — Core Guard</div>
+            </div>
+            <div style="height:12px;margin-top:12px;background:rgba(0,255,255,0.02);border-radius:6px;overflow:hidden">
+                <div class="scan-line" style="width:100%"></div>
+            </div>
+            <div class="scan-text">Initialising neural firewall — running quick diagnostics...</div>
+            <div id="consoleLog" class="console"></div>
+        </div>
+    </div>
+
+    <div class="container">
+        <h1 class="title" data-text="ACCESS DENIED">ACCESS DENIED</h1>
+
+        <div class="player">
+            <div class="disk-wrap">
+                <div id="disk" class="disk">
+                    <div class="disk-hole"></div>
+                </div>
+                <div id="diskGlow" class="disk-glow"></div>
+                <div class="ring-eq"><div class="bars" id="bars"></div></div>
+            </div>
+
+            <div class="meta" id="songTitle">Cyber City Dreams</div>
+
+            <div class="controls">
+                <button class="btn" id="prevBtn" title="Previous Track (←)">Prev</button>
+                <button class="btn primary" id="playPauseBtn" title="Play/Pause (Space)">Pause</button>
+                <button class="btn" id="nextBtn" title="Next Track (→)">Next</button>
+                <button class="btn" id="muteBtn">Mute</button>
+            </div>
+
+            <div class="options">
+                <div class="switch">
+                    <button class="theme-btn" id="themeToggle">Theme: Cyan</button>
+                </div>
+                <div class="switch">
+                    <button class="theme-btn" id="scanSkip">Skip Scan</button>
+                </div>
+            </div>
+            
+            <!-- 🎵 PLAYLIST: tất cả bài nhạc đều phát từ cùng máy chủ -->
+            <div class="playlist" id="playlist">
+                <div class="song active" data-src="/audio/EpicFastBitwiseEdm.mp3">
+                    Cyber City Dreams
+                </div>
+                <div class="song" data-src="/audio/FuturisticBeat.mp3">
+                    Futuristic Beat
+                </div>
+                <div class="song" data-src="/audio/NeonSynthwave.mp3">
+                    Neon Synthwave
+                </div>
+                <div class="song" data-src="/audio/CyberneticRobot.mp3">
+                    Cybernetic Robot
+                </div>
+                <div class="song" data-src="/audio/DarkFutureAmbient.mp3">
+                    Dark Future Ambient
+                </div>
+            </div>
+
+
+        </div>
+
+        <button class="btn" style="margin-top:18px" onclick="location.href='/'">Return Home</button>
+
+    </div>
+
+    <div class="footer">Built by Night City UI — free assets (Pixabay, Google Fonts)</div>
+
+    <!-- audio element -->
+    <!-- FIX: Replaced broken audio link with a new one -->
+    <audio id="audio" crossorigin="anonymous" loop>
+        <source src="https://cdn.pixabay.com/download/audio/2022/11/03/audio_f2745aafcb.mp3" type="audio/mpeg">
+    </audio>
+
+    <script>
+        // --- Elements ---
+        const scanOverlay = document.getElementById('scanOverlay');
+        const consoleLog = document.getElementById('consoleLog');
+        const scanSkip = document.getElementById('scanSkip');
+        const audioEl = document.getElementById('audio');
+        const playPauseBtn = document.getElementById('playPauseBtn');
+        const prevBtn = document.getElementById('prevBtn');
+        const nextBtn = document.getElementById('nextBtn');
+        const muteBtn = document.getElementById('muteBtn');
+        const playlistEl = document.getElementById('playlist');
+        const songEls = Array.from(document.querySelectorAll('.playlist .song'));
+        const songTitle = document.getElementById('songTitle');
+        const disk = document.getElementById('disk');
+        const diskGlow = document.getElementById('diskGlow');
+        const barsContainer = document.getElementById('bars');
+        const themeToggle = document.getElementById('themeToggle');
+
+        let current = 0; let rafId = null; let audioCtx=null, analyser=null, sourceNode=null, dataArray=null;
+        const BAR_COUNT = 28;
+
+        // build bars
+        for(let i=0;i<BAR_COUNT;i++){ const b=document.createElement('div'); b.className='bar'; b.style.height='18px'; barsContainer.appendChild(b); }
+        const bars = Array.from(document.querySelectorAll('.bar'));
+
+        // console typing simulation
+        const logs = [
+          'Boot sequence: OK',
+          'Neural firewall: initializing...',
+          'Scanning credentials: none found',
+          'Signature mismatch: access denied',
+          'Activating countermeasures: visual lockdown',
+          'Streaming ambient control to media layer'
+        ];
+        let li=0, typeTimeout;
+        function typeNext(){ if(li>=logs.length){ typeTimeout = setTimeout(()=>{ scanOverlay.style.opacity=0; scanOverlay.style.pointerEvents='none'; },500); return; } const txt=logs[li++]; const p=document.createElement('div'); p.textContent='> '+txt; consoleLog.appendChild(p); consoleLog.scrollTop = consoleLog.scrollHeight; typeTimeout = setTimeout(typeNext, 700 + Math.random()*800); }
+
+        function skipScan() {
+            clearTimeout(typeTimeout);
+            scanOverlay.style.opacity = 0;
+            scanOverlay.style.pointerEvents = 'none';
+        }
+
+        // start scan on load (unless user skips)
+        window.addEventListener('load', ()=>{ typeTimeout = setTimeout(typeNext,400); });
+        scanSkip.addEventListener('click', skipScan);
+
+        // playlist handling
+        function setActive(idx){ songEls.forEach((s,i)=> s.classList.toggle('active', i===idx)); const s = songEls[idx]; songTitle.textContent = s.textContent; audioEl.src = s.dataset.src; audioEl.play().catch(()=>{}); playPauseBtn.textContent='Pause'; disk.classList.add('spin'); localStorage.setItem('ac_current', idx); }
+        songEls.forEach((s,i)=> s.addEventListener('click', ()=>{ current=i; setActive(current); }));
+        prevBtn.addEventListener('click', ()=>{ current=(current-1+songEls.length)%songEls.length; setActive(current); });
+        nextBtn.addEventListener('click', ()=>{ current=(current+1)%songEls.length; setActive(current); });
+        playPauseBtn.addEventListener('click', ()=>{ if(audioEl.paused){ audioEl.play().catch(()=>{}); } else { audioEl.pause(); } });
+        muteBtn.addEventListener('click', ()=>{ audioEl.muted = !audioEl.muted; muteBtn.textContent = audioEl.muted ? 'Unmute' : 'Mute'; });
+
+        // load saved
+        const saved = localStorage.getItem('ac_current'); if(saved) current = parseInt(saved,10) || 0; setActive(current);
+
+        // theme toggle
+        let theme='cyan'; themeToggle.addEventListener('click', ()=>{ if(theme==='cyan'){ theme='magenta'; themeToggle.textContent='Theme: Magenta'; document.documentElement.style.setProperty('--neon-c','255, 90, 255'); } else { theme='cyan'; themeToggle.textContent='Theme: Cyan'; document.documentElement.style.setProperty('--neon-c','186, 255, 255'); } });
+
+        // WebAudio analyser setup
+        function setupWebAudio(){ try{
+          if (audioCtx) return; // Already set up
+          audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+          analyser = audioCtx.createAnalyser(); analyser.fftSize = 2048; analyser.smoothingTimeConstant = 0.7;
+          sourceNode = audioCtx.createMediaElementSource(audioEl);
+          sourceNode.connect(analyser); analyser.connect(audioCtx.destination);
+          dataArray = new Uint8Array(analyser.frequencyBinCount);
+        } catch(e){ console.warn('WebAudio init failed', e); }
+        }
+        
+        // animation loop
+        function animate(){ if(!analyser) return; analyser.getByteFrequencyData(dataArray);
+          const chunk = Math.floor(dataArray.length / BAR_COUNT) || 1;
+          for(let i=0;i<BAR_COUNT;i++){ let sum=0; for(let j=0;j<chunk;j++){ sum += dataArray[i*chunk + j]||0; } const avg = sum/(chunk||1); const h = Math.max(6, Math.min(140, avg/255*140)); const bar = bars[i]; bar.style.height = h+'px'; bar.style.opacity = 0.35 + (avg/255)*0.75; const hue = 190 + ((i/BAR_COUNT)*120); bar.style.background = `linear-gradient(to top, hsl(${hue} 90% 50%), hsl(${(hue+60)%360} 70% 45%))`; bar.style.boxShadow = `0 0 ${6 + (avg/255)*20}px hsla(${hue},90%,50%,0.9)`; }
+          // bands for glow
+          const bands = computeBands(dataArray);
+          const hsl = energyToHsl(bands.low,bands.mid,bands.high);
+          diskGlow.style.background = `radial-gradient(circle at 40% 30%, hsla(${hsl.h},${hsl.s}%,${hsl.l}%,0.6) , transparent 30%), radial-gradient(circle at 60% 70%, hsla(${hsl.h},${hsl.s}%,${hsl.l}%,0.35) , transparent 35%)`;
+          disk.style.boxShadow = `inset 0 0 ${20 + bands.avg/4}px rgba(255,255,255,0.02), 0 0 ${18 + bands.avg/3}px hsl(${hsl.h},${hsl.s}%,${hsl.l}%)`;
+          const scale = 1 + Math.min(0.04, bands.avg/255*0.04);
+          disk.style.transform = `scale(${scale})`;
+          rafId = requestAnimationFrame(animate);
+        }
+        function startVisual(){ if(!audioCtx) setupWebAudio(); if(rafId) return; animate(); }
+        function stopVisual(){ if(rafId){ cancelAnimationFrame(rafId); rafId=null; } }
+
+        function computeBands(freq){ if(!freq) return {low:0,mid:0,high:0,avg:0}; const n=freq.length; const lowEnd=Math.floor(n*0.18), midEnd=Math.floor(n*0.55); let low=0,mid=0,high=0; for(let i=0;i<n;i++){ if(i<lowEnd) low+=freq[i]; else if(i<midEnd) mid+=freq[i]; else high+=freq[i]; } const lowAvg = low/(lowEnd||1); const midAvg = mid/(Math.max(1,midEnd-lowEnd)); const highAvg = high/(Math.max(1,n-midEnd)); const avg = (lowAvg+midAvg+highAvg)/3; return {low:lowAvg,mid:midAvg,high:highAvg,avg}; }
+        function energyToHsl(low,mid,high){ const total = low+mid+high || 1; const lowW = low/total, midW=mid/total, highW=high/total; const hue = Math.round(lowW*190 + midW*200 + highW*305); const intensity = Math.min(1, (low+mid+high)/3 / 140); const sat = 60 + Math.round(intensity*35); const light = 40 + Math.round(intensity*18); return {h: hue, s: sat, l: light}; }
+
+        // resume audio context on user gesture
+        async function resumeAudioContext() {
+            try {
+                if (audioCtx && audioCtx.state !== 'running') {
+                    await audioCtx.resume();
+                }
+            } catch(e) {
+                console.warn('Could not resume audio context.', e);
+            }
+            document.removeEventListener('click', resumeAudioContext);
+            document.removeEventListener('keydown', resumeAudioContext);
+        }
+        document.addEventListener('click', resumeAudioContext);
+        document.addEventListener('keydown', resumeAudioContext);
+
+        // audio play event handlers
+        audioEl.addEventListener('play', ()=>{ startVisual(); disk.classList.add('spin'); playPauseBtn.textContent='Pause'; });
+        audioEl.addEventListener('pause', ()=>{ stopVisual(); disk.classList.remove('spin'); playPauseBtn.textContent='Play'; });
+
+        // try autoplay (may be blocked by browser)
+        audioEl.play().catch(()=>{ playPauseBtn.textContent='Play'; });
+
+        // ensure cleanup
+        window.addEventListener('beforeunload', ()=>{ if(rafId) cancelAnimationFrame(rafId); if(audioCtx && audioCtx.close) audioCtx.close().catch(()=>{}); });
+
+        // accessibility: keyboard
+        document.addEventListener('keydown',(e)=>{ if(e.code==='Space' && e.target === document.body){ e.preventDefault(); playPauseBtn.click(); } if(e.code==='ArrowRight') nextBtn.click(); if(e.code==='ArrowLeft') prevBtn.click(); });
+    </script>
+</body>
+</html>

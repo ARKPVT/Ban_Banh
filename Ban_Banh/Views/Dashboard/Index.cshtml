@@ -1,0 +1,159 @@
+﻿@model DemoApp.Models.DashboardViewModel
+@{
+    ViewData["Title"] = "Thống kê tổng quan";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+    var selected = ViewBag.SelectedPeriod as string ?? "month";
+
+    var periods = new Dictionary<string, string>
+    {
+        { "day", "Ngày" },
+        { "week", "Tuần" },
+        { "month", "Tháng" },
+        { "quarter", "Quý" },
+        { "year", "Năm" },
+        { "all", "Tất cả" }
+    };
+}
+
+<div class="container mt-4">
+    <h2 class="fw-bold mb-3">@ViewData["Title"]</h2>
+
+    <!-- Bộ lọc -->
+    <form method="get" class="mb-4">
+        <label for="period" class="fw-semibold">Mốc thời gian:</label>
+        <select name="period" id="period" class="form-select w-auto d-inline-block ms-2" onchange="this.form.submit()">
+            @{
+                foreach (var p in periods)
+                {
+                    if (p.Key == selected)
+                    {
+                        <option value="@p.Key" selected>@p.Value</option>
+                    }
+                    else
+                    {
+                        <option value="@p.Key">@p.Value</option>
+                    }
+                }
+            }
+        </select>
+    </form>
+
+    <!-- Thẻ tổng hợp -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-4 col-lg-2">
+            <div class="card text-center shadow-sm border-0 bg-primary text-white">
+                <div class="card-body">
+                    <h6>Tổng doanh thu</h6>
+                    <h4>@string.Format("{0:N0} ₫", Model.TotalRevenue)</h4>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 col-lg-2">
+            <div class="card text-center shadow-sm border-0 bg-danger text-white">
+                <div class="card-body">
+                    <h6>Tổng chi phí</h6>
+                    <h4>@string.Format("{0:N0} ₫", Model.TotalExpense)</h4>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 col-lg-2">
+            <div class="card text-center shadow-sm border-0 bg-success text-white">
+                <div class="card-body">
+                    <h6>Lợi nhuận</h6>
+                    <h4>@string.Format("{0:N0} ₫", Model.Profit)</h4>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 col-lg-2">
+            <div class="card text-center shadow-sm border-0 bg-warning text-dark">
+                <div class="card-body">
+                    <h6>Đơn hàng</h6>
+                    <h4>@Model.TotalOrders</h4>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 col-lg-2">
+            <div class="card text-center shadow-sm border-0 bg-info text-dark">
+                <div class="card-body">
+                    <h6>Nhân viên</h6>
+                    <h4>@Model.TotalEmployees</h4>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 col-lg-2">
+            <div class="card text-center shadow-sm border-0 bg-secondary text-white">
+                <div class="card-body">
+                    <h6>Tồn kho</h6>
+                    <h4>@Model.TotalProductsInStock</h4>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Biểu đồ -->
+    <div class="row g-4">
+        <div class="col-md-8">
+            <div class="card shadow-sm p-3">
+                <h5 class="mb-3">Doanh thu - Chi phí theo tháng</h5>
+                <canvas id="lineChart" height="120"></canvas>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card shadow-sm p-3">
+                <h5 class="mb-3">Cơ cấu chi phí</h5>
+                <canvas id="pieChart" height="120"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cảnh báo -->
+    <div class="card shadow-sm mt-4">
+        <div class="card-header fw-bold bg-light">Cảnh báo nhanh</div>
+        <ul class="list-group list-group-flush">
+            @foreach (var warning in Model.Warnings)
+            {
+                <li class="list-group-item">@warning</li>
+            }
+        </ul>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        const months = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.MonthlyReports.Select(r => r.Month)));
+        const revenues = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.MonthlyReports.Select(r => r.Revenue)));
+        const expenses = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.MonthlyReports.Select(r => r.Expense)));
+
+        const lineCtx = document.getElementById('lineChart').getContext('2d');
+        new Chart(lineCtx, {
+            type: 'line',
+            data: {
+                labels: months,
+                datasets: [
+                    { label: 'Doanh thu', data: revenues, borderColor: '#007bff', fill: false, tension: 0.3 },
+                    { label: 'Chi phí', data: expenses, borderColor: '#dc3545', fill: false, tension: 0.3 }
+                ]
+            },
+            options: {
+                responsive: true,
+                plugins: { legend: { position: 'top' } },
+                scales: { y: { beginAtZero: true } }
+            }
+        });
+
+        const pieLabels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.ExpenseStructure.Keys));
+        const pieValues = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.ExpenseStructure.Values));
+
+        const pieCtx = document.getElementById('pieChart').getContext('2d');
+        new Chart(pieCtx, {
+            type: 'pie',
+            data: {
+                labels: pieLabels,
+                datasets: [{ data: pieValues, backgroundColor: ['#007bff','#dc3545','#ffc107','#28a745','#6f42c1'] }]
+            },
+            options: { responsive: true }
+        });
+    </script>
+}

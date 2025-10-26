@@ -1,0 +1,33 @@
+﻿@model Ban_Banh.Models.SupplierProduct
+@{
+    ViewData["Title"] = "Thêm Bánh Cho Nhà Cung Cấp";
+    var banhList = ViewBag.BanhList as List<Ban_Banh.Models.Banh>;
+}
+
+<h3>Thêm Bánh Cho Nhà Cung Cấp</h3>
+<hr />
+
+<form asp-action="AddProduct" method="post">
+    <input type="hidden" asp-for="SupplierId" value="@ViewBag.SupplierId" />
+
+    <div class="mb-3">
+        <label class="form-label">Chọn Bánh</label>
+        <select asp-for="BanhId" class="form-select">
+            <option value="">-- Chọn bánh --</option>
+            @foreach (var b in banhList)
+            {
+                <option value="@b.Id">@b.TenBanh</option>
+            }
+        </select>
+        <span asp-validation-for="BanhId" class="text-danger"></span>
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Giá Nhập</label>
+        <input asp-for="GiaNhap" class="form-control" />
+        <span asp-validation-for="GiaNhap" class="text-danger"></span>
+    </div>
+
+    <button type="submit" class="btn btn-primary">Thêm</button>
+    <a asp-action="Edit" asp-route-id="@ViewBag.SupplierId" class="btn btn-secondary">Hủy</a>
+</form>

@@ -1,0 +1,107 @@
+﻿@model IEnumerable<DemoApp.Models.ProductStatisticViewModel>
+@{
+    ViewData["Title"] = "Thống kê sản phẩm";
+    var selected = ViewBag.SelectedPeriod as string ?? "month";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+
+    var periods = new Dictionary<string, string>
+    {
+        { "day", "Ngày" },
+        { "week", "Tuần" },
+        { "month", "Tháng" },
+        { "quarter", "Quý" },
+        { "year", "Năm" },
+        { "all", "Tất cả" }
+    };
+}
+
+<div class="container mt-4">
+    <h2 class="mb-3">@ViewBag.Title</h2>
+
+    <!-- Bộ lọc thời gian -->
+    <form method="get" class="mb-4">
+        <label for="period" class="form-label fw-semibold">Chọn mốc thời gian:</label>
+        <select name="period" id="period" class="form-select w-auto d-inline-block ms-2" onchange="this.form.submit()">
+            @{
+                foreach (var p in periods)
+                {
+                    if (p.Key == selected)
+                    {
+                        <option value="@p.Key" selected>@p.Value</option>
+                    }
+                    else
+                    {
+                        <option value="@p.Key">@p.Value</option>
+                    }
+                }
+            }
+        </select>
+    </form>
+
+    <!-- Biểu đồ thống kê -->
+    <div class="card shadow-sm p-3 mb-4">
+        <h5 class="mb-3">Biểu đồ tổng quan</h5>
+        <canvas id="productChart" height="120"></canvas>
+    </div>
+
+    <!-- Bảng dữ liệu -->
+    <div class="card shadow-sm">
+        <div class="card-header fw-bold bg-light">Chi tiết sản phẩm</div>
+        <div class="card-body p-0">
+            <table class="table table-striped table-bordered text-center align-middle m-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Tên sản phẩm</th>
+                        <th>Đã nhập</th>
+                        <th>Đã bán</th>
+                        <th>Còn tồn</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var p in Model)
+                    {
+                        <tr>
+                            <td>@p.ProductName</td>
+                            <td>@p.Imported</td>
+                            <td>@p.Sold</td>
+                            <td class="fw-bold @(p.InStock < 50 ? "text-danger" : "text-success")">@p.InStock</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        const labels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Select(p => p.ProductName)));
+        const imported = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Select(p => p.Imported)));
+        const sold = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Select(p => p.Sold)));
+        const inStock = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Select(p => p.InStock)));
+
+        const ctx = document.getElementById('productChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [
+                    { label: 'Đã nhập', data: imported, backgroundColor: '#007bff' },
+                    { label: 'Đã bán', data: sold, backgroundColor: '#28a745' },
+                    { label: 'Tồn kho', data: inStock, backgroundColor: '#ffc107' }
+                ]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { position: 'top' },
+                    title: { display: true, text: 'Thống kê nhập - bán - tồn' }
+                },
+                scales: {
+                    y: { beginAtZero: true }
+                }
+            }
+        });
+    </script>
+}

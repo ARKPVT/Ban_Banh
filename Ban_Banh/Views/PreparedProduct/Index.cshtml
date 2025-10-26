@@ -1,0 +1,189 @@
+﻿@model List<Ban_Banh.Models.PreparedProductViewModel>
+
+@{
+    ViewData["Title"] = "Quản lý xuất hàng";
+    Layout = "~/Views/Shared/_Layout_Employee_Kho.cshtml";
+}
+
+<h2>@ViewData["Title"]</h2>
+<p><strong>Lưu ý:</strong> Chỉ hiển thị các đơn hàng bánh xe.</p>
+
+@* ===== Banner lỗi SQL nếu có ===== *@
+@if (ViewBag.SqlError != null)
+{
+    <div class="alert alert-danger" role="alert" style="white-space:pre-wrap">
+        <strong>Lỗi cơ sở dữ liệu:</strong>
+        <br />
+        @ViewBag.SqlError
+    </div>
+}
+
+<table class="table table-bordered table-striped">
+    <thead>
+        <tr>
+            <th>Mã Đơn Hàng</th>
+            <th>Bánh</th>
+            <th>Số lượng</th>
+            <th>Đã nhập</th>
+            <th>Trạng thái</th>
+            <th>Thao tác</th>
+        </tr>
+    </thead>
+    <tbody>
+        @if (Model != null && Model.Count > 0)
+        {
+            foreach (var item in Model)
+            {
+                var isEnough = (item?.PreparedCount ?? 0) >= (item?.Quantity ?? 0);
+                <tr>
+                    <td>@item.OrderId</td>
+                    <td>@item.BanhName</td>
+                    <td>@item.Quantity</td>
+                    <td>@item.PreparedCount</td>
+                    <td>@item.StatusName</td>
+                    <td>
+                        <button class="btn btn-sm @(isEnough ? "btn-secondary disabled" : "btn-success")"
+                                onclick="openCameraModal(@item.OrderDetailId)"
+                                title="@(isEnough ? "Đã đủ số lượng" : "Nhập hàng")"
+                                aria-disabled="@(isEnough ? "true" : "false")"
+                                @(isEnough ? "disabled" : "")>
+                            Nhập hàng
+                        </button>
+                    </td>
+                </tr>
+            }
+        }
+        else
+        {
+            <tr>
+                <td colspan="6" class="text-center text-muted">Không có dữ liệu để hiển thị.</td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+<!-- Modal quét mã QR -->
+<div id="cameraModal" style="display:none; position:fixed; top:10%; left:50%; transform:translateX(-50%); background:white; border:1px solid #ccc; padding:20px; border-radius:10px; z-index:9999;">
+    <h4>Quét mã QR sản phẩm</h4>
+    <label for="cameraSelect">Chọn camera:</label>
+    <select id="cameraSelect"></select>
+    <div style="margin-top:10px;">
+        <div id="cameraPreview" style="width:400px; height:300px; border:1px solid #ddd;"></div>
+    </div>
+    <br />
+    <button class="btn btn-secondary" onclick="stopScan()">Đóng</button>
+</div>
+
+<!-- ✅ Link chính xác của thư viện html5-qrcode -->
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+
+<script>
+    let html5QrCode = null;
+    let currentOrderDetailId = null;
+
+    // Mở modal và bắt đầu quét
+    function openCameraModal(orderDetailId) {
+        currentOrderDetailId = orderDetailId;
+        const modal = document.getElementById("cameraModal");
+        const select = document.getElementById("cameraSelect");
+
+        modal.style.display = "block";
+        select.innerHTML = "<option>Đang tải danh sách camera...</option>";
+
+        setTimeout(() => {
+            Html5Qrcode.getCameras().then(devices => {
+                select.innerHTML = "";
+
+                if (!devices || devices.length === 0) {
+                    alert("Không tìm thấy camera nào!");
+                    return;
+                }
+
+                devices.forEach((d, i) => {
+                    const opt = document.createElement("option");
+                    opt.value = d.id;
+                    opt.text = d.label || `Camera ${i + 1}`;
+                    select.appendChild(opt);
+                });
+
+                // Tự động quét camera đầu tiên
+                startScan(select.value);
+
+                select.onchange = () => startScan(select.value);
+            }).catch(err => {
+                alert("Lỗi truy cập camera: " + err);
+                console.error(err);
+            });
+        }, 300);
+    }
+
+    // Khởi động quét
+    async function startScan(cameraId) {
+        if (html5QrCode) {
+            try {
+                await html5QrCode.stop();
+                await html5QrCode.clear();
+            } catch (e) {
+                console.warn("Không thể dừng camera cũ:", e);
+            }
+        }
+
+        html5QrCode = new Html5Qrcode("cameraPreview");
+
+        html5QrCode.start(
+            cameraId,
+            { fps: 10, qrbox: { width: 250, height: 250 } },
+            qrCodeMessage => {
+                stopScan();
+                savePreparedProduct(qrCodeMessage);
+            },
+            _ => { /* giảm log lỗi lặt vặt */ }
+        ).catch(err => {
+            console.error("Lỗi khởi động quét:", err);
+            alert("Không thể khởi động quét camera.");
+        });
+    }
+
+    // Dừng camera
+    async function stopScan() {
+        const modal = document.getElementById("cameraModal");
+        modal.style.display = "none";
+
+        if (html5QrCode) {
+            try {
+                await html5QrCode.stop();
+                await html5QrCode.clear();
+            } catch (err) {
+                console.warn("Lỗi khi dừng quét:", err);
+            }
+        }
+    }
+
+    // Gửi dữ liệu lên server
+    function savePreparedProduct(qrData) {
+        const productInstanceId = parseInt(qrData.replace(/\D/g, ""));
+        if (!productInstanceId) {
+            alert("QR không hợp lệ!");
+            return;
+        }
+
+        fetch('/PreparedProduct/SavePreparedProduct', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: `orderDetailId=${currentOrderDetailId}&productInstanceId=${productInstanceId}`
+        })
+        .then(async res => {
+            const data = await res.json().catch(() => ({}));
+            if (data && data.success) {
+                alert("Đã nhập sản phẩm thành công!");
+                location.reload();
+            } else {
+                alert(data.message || "Đã có lỗi khi lưu dữ liệu.");
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            alert("Lỗi khi gửi dữ liệu lên server.");
+        });
+    }
+</script>

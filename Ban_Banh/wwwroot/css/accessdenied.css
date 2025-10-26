@@ -1,0 +1,348 @@
+﻿<style >
+:root {
+    --bg1: #000815;
+    --bg2: #00121a;
+    --neon-c: 186 255 255; /* cyan H S L */
+    --neon-m: 305 100% 55%;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+html, body {
+    height: 100%;
+    margin: 0;
+    font-family: 'Share Tech Mono', monospace;
+    background: radial-gradient(circle at 20% 20%, var(--bg2), #000 60%);
+    color: rgba(0,255,255,0.95);
+}
+
+.bg {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    background: linear-gradient(135deg,#000815, #000);
+    filter: contrast(1.02);
+}
+
+.grain {
+    position: fixed;
+    inset: 0;
+    background-image: url('https://www.transparenttextures.com/patterns/asfalt-dark.png');
+    opacity: 0.06;
+    mix-blend-mode: screen;
+    z-index: 1;
+}
+
+.container {
+    position: relative;
+    z-index: 4;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 30px;
+}
+
+.title {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 4rem;
+    letter-spacing: 6px;
+    text-transform: uppercase;
+    position: relative;
+    margin: 6px 0;
+    color: transparent;
+    background: linear-gradient(90deg, #7ff, #a0f);
+    -webkit-background-clip: text;
+    background-clip: text;
+    text-shadow: 0 0 12px rgba(0,255,255,0.12);
+}
+
+    .title::before, .title::after {
+        content: attr(data-text);
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+    }
+
+    .title::before {
+        color: #ff66ff;
+        mix-blend-mode: screen;
+        transform: translateX(4px);
+        opacity: 0.12;
+    }
+
+    .title::after {
+        color: #66ffee;
+        mix-blend-mode: screen;
+        transform: translateX(-4px);
+        opacity: 0.12;
+    }
+
+/* startup scan overlay */
+.scan-overlay {
+    position: fixed;
+    inset: 0;
+    background: linear-gradient(180deg,rgba(0,0,0,0.9),rgba(0,0,0,0.6));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    z-index: 9999;
+    transition: opacity 0.5s ease-out;
+}
+
+.scan-box {
+    width: 720px;
+    max-width: 92vw;
+    padding: 20px;
+    border-radius: 10px;
+    border: 1px solid rgba(0,255,255,0.06);
+    background: linear-gradient(180deg,rgba(0,10,15,0.5),rgba(0,0,0,0.25));
+    box-shadow: 0 0 80px rgba(0,255,255,0.03);
+}
+
+.scan-line {
+    height: 3px;
+    background: linear-gradient(90deg,transparent,rgba(0,255,255,0.6),transparent);
+    animation: scanMove 2.2s linear infinite;
+}
+
+/* FIX: Corrected CSS keyframes syntax */
+@keyframes scanMove {
+    0% {
+        transform: translateX(-100%);
+    }
+
+    100% {
+        transform: translateX(100%);
+    }
+}
+
+.scan-text {
+    color: #9ff;
+    margin-top: 12px;
+    font-size: 0.95rem;
+    letter-spacing: 1px;
+}
+
+.console {
+    margin-top: 14px;
+    background: #001219;
+    padding: 10px;
+    border-radius: 6px;
+    color: #9ff;
+    font-size: 0.85rem;
+    height: 140px;
+    overflow: auto;
+}
+
+/* disk & visuals */
+.player {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    z-index: 4;
+}
+
+.disk-wrap {
+    position: relative;
+    width: 240px;
+    height: 240px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.disk {
+    width: 200px;
+    height: 200px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, rgba(255,255,255,0.02), #00222b 15%, #000 70%);
+    box-shadow: 0 0 40px rgba(0,255,255,0.06) inset;
+    border: 2px solid rgba(0,255,255,0.06);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 120ms linear;
+}
+
+    .disk.spin {
+        animation: diskSpin 4.2s linear infinite;
+    }
+
+/* FIX: Corrected CSS keyframes syntax */
+@keyframes diskSpin {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.disk-hole {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: #000;
+    box-shadow: inset 0 0 12px rgba(0,255,255,0.08);
+}
+
+.disk-glow {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    filter: blur(18px);
+    mix-blend-mode: screen;
+    pointer-events: none;
+    transition: background 120ms linear;
+}
+
+/* ring equalizer */
+.ring-eq {
+    position: absolute;
+    inset: -34px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+}
+
+.bars {
+    display: flex;
+    gap: 6px;
+    align-items: flex-end;
+    transform: translateY(70px);
+}
+
+.bar {
+    width: 6px;
+    height: 18px;
+    background: linear-gradient(to top, rgba(0,255,255,0.95), rgba(255,0,255,0.85));
+    border-radius: 3px;
+    box-shadow: 0 0 8px rgba(0,255,255,0.2);
+    transition: height 80ms linear,opacity 80ms linear;
+}
+
+/* controls & playlist */
+.meta {
+    font-size: 1rem;
+    color: #9ff;
+    opacity: 0.95;
+}
+
+.controls {
+    display: flex;
+    gap: 10px;
+    margin-top: 6px;
+}
+
+.btn {
+    background: transparent;
+    border: 1px solid rgba(0,255,255,0.12);
+    padding: 8px 14px;
+    border-radius: 8px;
+    color: rgb(var(--neon-c));
+    cursor: pointer;
+    transition: transform 0.2s ease;
+}
+
+    .btn.primary {
+        border-color: rgba(0,255,255,0.9);
+        box-shadow: 0 0 12px rgba(0,255,255,0.06);
+    }
+
+    .btn:hover {
+        transform: translateY(-3px);
+        background-color: rgba(0, 255, 255, 0.1);
+    }
+
+.playlist {
+    width: 360px;
+    max-width: 92vw;
+    background: linear-gradient(180deg, rgba(0,10,15,0.45), rgba(0,0,0,0.25));
+    padding: 8px;
+    border-radius: 8px;
+    border: 1px solid rgba(0,255,255,0.06);
+    max-height: 220px;
+    overflow: auto;
+}
+
+.song {
+    padding: 8px;
+    border-radius: 6px;
+    cursor: pointer;
+    color: #bff;
+}
+
+    .song:hover {
+        background: rgba(0,255,255,0.04);
+    }
+
+    .song.active {
+        box-shadow: 0 0 12px rgba(0,255,255,0.12);
+        background: linear-gradient(90deg, rgba(0,255,255,0.08), transparent);
+        color: #fff;
+    }
+
+/* small options */
+.options {
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.switch {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.theme-btn {
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.04);
+    padding: 6px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    color: #9ff;
+}
+
+/* footer */
+.footer {
+    position: fixed;
+    left: 14px;
+    bottom: 12px;
+    color: #6ff;
+    opacity: 0.6;
+    font-size: 0.82rem;
+}
+
+/* FIX: Corrected media query syntax */
+@media (max-width: 520px) {
+    .title {
+        font-size: 2.2rem;
+    }
+
+    .disk-wrap {
+        width: 170px;
+        height: 170px;
+    }
+
+    .disk {
+        width: 140px;
+        height: 140px;
+    }
+
+    .playlist {
+        width: 92vw;
+    }
+}
+
+</style >

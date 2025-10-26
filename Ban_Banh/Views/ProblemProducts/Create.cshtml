@@ -1,0 +1,38 @@
+﻿@model DemoApp.Models.ProblemProductViewModel
+@{
+    ViewData["Title"] = "Thêm hàng lỗi mới";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+}
+
+<div class="container mt-4">
+    <h3 class="fw-bold mb-3">@ViewData["Title"]</h3>
+
+    <form asp-action="Create" method="post" class="card shadow-sm p-4">
+        <div class="mb-3">
+            <label class="form-label fw-semibold">Tên sản phẩm</label>
+            <input asp-for="ProductName" class="form-control" required />
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label fw-semibold">Danh mục</label>
+            <input asp-for="Category" class="form-control" required />
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label fw-semibold">Loại vấn đề</label>
+            <select asp-for="ProblemType" class="form-select">
+                <option value="Damaged">Hư hỏng</option>
+                <option value="Returned">Hàng trả lại</option>
+                <option value="Recalled">Hàng thu hồi</option>
+            </select>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label fw-semibold">Mô tả chi tiết</label>
+            <textarea asp-for="Description" class="form-control" rows="3"></textarea>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Lưu lại</button>
+        <a asp-action="Index" class="btn btn-secondary ms-2">Quay lại</a>
+    </form>
+</div>

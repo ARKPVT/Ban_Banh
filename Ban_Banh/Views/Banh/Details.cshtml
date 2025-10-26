@@ -1,0 +1,47 @@
+﻿@model Ban_Banh.Models.Banh
+@{
+    ViewData["Title"] = "Chi tiết bánh - " + Model.TenBanh;
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container py-4">
+    <div class="row">
+        <div class="col-md-5 text-center">
+            <img src="@Model.HinhAnh" alt="@Model.TenBanh" class="img-fluid rounded shadow-sm" />
+        </div>
+
+        <div class="col-md-7">
+            <h2 class="fw-bold mb-3">@Model.TenBanh</h2>
+            <h4 class="text-danger fw-bold">@Model.Gia.ToString("N0") đ</h4>
+            <p class="text-muted mt-2">@Model.MoTa</p>
+
+            @if (!string.IsNullOrEmpty(Model.MoTaChiTiet))
+            {
+                <div class="mt-4">
+                    <h5>🍰 Thông tin chi tiết:</h5>
+                    <p><strong>Nguyên liệu:</strong> @Model.NguyenLieu</p>
+                    <p><strong>Hương vị:</strong> @Model.HuongVi</p>
+                    <p><strong>Kích thước:</strong> @Model.KichThuoc</p>
+                    <p><strong>Mô tả chi tiết:</strong></p>
+                    <p>@Model.MoTaChiTiet</p>
+                </div>
+            }
+            else
+            {
+                <p class="text-muted mt-3 fst-italic">Chưa có thông tin chi tiết cho bánh này.</p>
+            }
+
+            <div class="mt-4">
+                <a asp-controller="Banh" asp-action="AddToCart" asp-route-id="@Model.Id" class="btn btn-primary px-4">🛒 Thêm vào giỏ</a>
+                <a asp-controller="Banh" asp-action="Index" class="btn btn-outline-secondary ms-2">⬅ Quay lại</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    img {
+        max-height: 400px;
+        object-fit: cover;
+    }
+</style>

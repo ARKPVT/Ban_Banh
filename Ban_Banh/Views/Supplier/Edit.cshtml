@@ -1,0 +1,98 @@
+﻿@model Ban_Banh.Models.Supplier
+@{
+    ViewData["Title"] = "Chỉnh Sửa Nhà Cung Cấp";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+}
+
+<h2>✏️ Chỉnh Sửa Nhà Cung Cấp</h2>
+
+@if (TempData["Message"] != null)
+{
+    <div class="alert alert-success">@TempData["Message"]</div>
+}
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger">@TempData["Error"]</div>
+}
+
+<form asp-action="Edit" method="post">
+    <input type="hidden" asp-for="Id" />
+
+    <div class="row">
+        <div class="col-md-6 mb-3">
+            <label class="form-label">Tên Nhà Cung Cấp</label>
+            <input asp-for="TenNhaCungCap" class="form-control" />
+            <span asp-validation-for="TenNhaCungCap" class="text-danger"></span>
+        </div>
+
+        <div class="col-md-6 mb-3">
+            <label class="form-label">Số Điện Thoại</label>
+            <input asp-for="SoDienThoai" class="form-control" />
+        </div>
+
+        <div class="col-md-6 mb-3">
+            <label class="form-label">Email</label>
+            <input asp-for="Email" class="form-control" />
+        </div>
+
+        <div class="col-md-6 mb-3">
+            <label class="form-label">Website</label>
+            <input asp-for="Website" class="form-control" />
+        </div>
+
+        <div class="col-md-12 mb-3">
+            <label class="form-label">Địa Chỉ</label>
+            <input asp-for="DiaChi" class="form-control" />
+        </div>
+
+        <div class="col-md-12 mb-3">
+            <label class="form-label">Ghi Chú</label>
+            <textarea asp-for="GhiChu" class="form-control" rows="3"></textarea>
+        </div>
+    </div>
+
+    <button type="submit" class="btn btn-primary">💾 Lưu thay đổi</button>
+    <a asp-action="Index" class="btn btn-secondary">⬅️ Quay lại</a>
+</form>
+
+<hr />
+
+<h4>📦 Danh Sách Bánh Cung Cấp</h4>
+
+<a asp-action="AddProduct" asp-route-supplierId="@Model.Id" class="btn btn-success mb-3">+ Thêm Bánh</a>
+
+<table class="table table-bordered table-hover align-middle">
+    <thead class="table-light">
+        <tr>
+            <th>Tên Bánh</th>
+            <th>Giá Nhập</th>
+            <th>Ngày Nhập</th>
+            <th style="width:150px;">Hành Động</th>
+        </tr>
+    </thead>
+    <tbody>
+        @if (Model.SupplierProducts != null && Model.SupplierProducts.Any())
+        {
+            foreach (var sp in Model.SupplierProducts)
+            {
+                <tr>
+                    <td>@sp.TenBanh</td>
+                    <td>@sp.GiaNhap.ToString("N0") đ</td>
+                    <td>@sp.NgayNhap.ToString("dd/MM/yyyy")</td>
+                    <td class="text-center">
+                        <a asp-action="EditProduct" asp-route-id="@sp.Id" class="btn btn-sm btn-warning">Sửa</a>
+                        <a asp-action="DeleteProduct" asp-route-id="@sp.Id" asp-route-supplierId="@Model.Id"
+                           onclick="return confirm('Bạn chắc chắn muốn xóa bánh này khỏi nhà cung cấp?')"
+                           class="btn btn-sm btn-danger">Xóa</a>
+                    </td>
+                </tr>
+            }
+        }
+        else
+        {
+            <tr>
+                <td colspan="4" class="text-center text-muted">Chưa có bánh nào được cung cấp.</td>
+            </tr>
+        }
+    </tbody>
+</table>

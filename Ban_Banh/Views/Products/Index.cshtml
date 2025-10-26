@@ -1,0 +1,178 @@
+﻿@model List<Ban_Banh.Models.Banh>
+@{
+    ViewData["Title"] = "Quản lý sản phẩm";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+}
+
+<div class="container mt-4">
+    <h2 class="mb-4">Quản lý sản phẩm</h2>
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger">@TempData["Error"]</div>
+    }
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success">@TempData["Success"]</div>
+    }
+    @if (ViewBag.Error != null)
+    {
+        <div class="alert alert-warning">@ViewBag.Error</div>
+    }
+
+    <!-- Hiển thị chi tiết lỗi SQL (nếu có) trong khung có thể mở -->
+    @if (TempData["SqlErrorDetails"] != null || ViewBag.SqlErrorDetails != null)
+    {
+        var details = TempData["SqlErrorDetails"] ?? ViewBag.SqlErrorDetails;
+        <div class="alert alert-secondary">
+            <details>
+                <summary><strong>Chi tiết lỗi SQL (click để mở)</strong></summary>
+                <pre style="white-space:pre-wrap;word-break:break-word;">@Html.Raw(Html.Encode(details.ToString()))</pre>
+            </details>
+            <small class="text-muted">Không bật hiển thị chi tiết lỗi trên môi trường production (bảo mật).</small>
+        </div>
+    }
+
+    <button class="btn btn-success mb-3" data-bs-toggle="modal" data-bs-target="#productModal" onclick="clearForm()">+ Thêm sản phẩm</button>
+
+    <table class="table table-bordered table-striped">
+        <thead class="table-dark">
+            <tr>
+                <th>ID</th>
+                <th>Tên bánh</th>
+                <th>Mô tả</th>
+                <th>Giá</th>
+                <th>Danh mục</th>
+                <th>Hình ảnh</th>
+                <th>Thao tác</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in Model)
+            {
+                <tr>
+                    <td>@item.Id</td>
+                    <td>@item.TenBanh</td>
+                    <td>@item.MoTa</td>
+                    <td>@string.Format("{0:N0} ₫", item.Gia)</td>
+                    <td>@item.CategoryName</td>
+                    <td>
+                        @if (!string.IsNullOrEmpty(item.HinhAnh))
+                        {
+                            <img src="@item.HinhAnh" width="60" alt="@item.TenBanh" />
+                        }
+                    </td>
+                    <td>
+                        <a asp-controller="Products" asp-action="Details" asp-route-id="@item.Id" class="btn btn-sm btn-info">
+                            <i class="bi bi-card-text"></i>
+                        </a>
+                        <!-- SỬ DỤNG data-* ATTR để truyền an toàn các giá trị vào JS -->
+                        <button class="btn btn-sm btn-primary"
+                                data-bs-toggle="modal"
+                                data-bs-target="#productModal"
+                                data-id="@item.Id"
+                                data-mota="@item.MoTa"
+                                data-gia="@item.Gia"
+                                data-img="@item.HinhAnh"
+                                data-cat="@(item.CategoryId.HasValue? item.CategoryId.ToString() : "")"
+                                data-catname="@item.CategoryName"
+                                onclick="editProduct(this)">
+                            <i class="bi bi-pencil"></i>
+                        </button>
+                        <form asp-controller="Products" asp-action="Delete" method="post" style="display:inline;">
+                            <input type="hidden" name="id" value="@item.Id" />
+                            <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Bạn có chắc muốn xóa sản phẩm này?')">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+<!-- Modal -->
+<div class="modal fade" id="productModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form asp-controller="Products" asp-action="Save" method="post">
+                <div class="modal-header">
+                    <h5 class="modal-title">Thêm / Sửa sản phẩm</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- IMPORTANT:
+                         - Id mặc định = 0 (tránh bind "" -> int lỗi)
+                         - Thêm hidden CategoryName để tránh lỗi Required nếu model có attribute -->
+                    <input type="hidden" name="Id" id="Id" value="0" />
+                    <input type="hidden" name="CategoryName" id="CategoryName" value="Chưa có danh mục" />
+
+                    <div class="mb-3">
+                        <label class="form-label">Tên bánh</label>
+                        <input type="text" name="TenBanh" id="TenBanh" class="form-control" required />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Mô tả</label>
+                        <!-- Nếu model bắt buộc MoTa, ta khởi tạo giá trị mặc định khi mở form thêm mới -->
+                        <textarea name="MoTa" id="MoTa" class="form-control"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Giá</label>
+                        <input type="number" name="Gia" id="Gia" class="form-control" required />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Hình ảnh (tên file)</label>
+                        <input type="text" name="HinhAnh" id="HinhAnh" class="form-control" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Mã danh mục</label>
+                        <input type="number" name="CategoryId" id="CategoryId" class="form-control" />
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn btn-primary">Lưu</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Clear form for "Thêm" (đặt Id=0 thay vì rỗng)
+        function clearForm() {
+            $('#Id').val(0);
+            $('#TenBanh').val('');
+            // Nếu model có [Required] cho MoTa thì mặc định có một chuỗi hợp lệ
+            $('#MoTa').val('Không có mô tả');
+            $('#Gia').val('');
+            $('#HinhAnh').val('');
+            $('#CategoryId').val('');
+            $('#CategoryName').val('Chưa có danh mục');
+        }
+
+        // editProduct nhận nút (this) và đọc data-* attributes -> tránh lỗi escape chuỗi
+        function editProduct(btn) {
+            var $btn = $(btn);
+            $('#Id').val($btn.data('id') ?? 0);
+            $('#TenBanh').val($btn.data('ten') ?? '');
+            // Nếu mota là null/undefined thì để chuỗi rỗng (người dùng sẽ chỉnh)
+            var mota = $btn.data('mota');
+            $('#MoTa').val(mota === undefined || mota === null ? '' : mota);
+            $('#Gia').val($btn.data('gia') ?? '');
+            $('#HinhAnh').val($btn.data('img') ?? '');
+            $('#CategoryId').val($btn.data('cat') ?? '');
+            $('#CategoryName').val($btn.data('catname') ?? 'Chưa có danh mục');
+        }
+
+        // Khi modal mở mà không có data-id (tức là "Thêm"), đảm bảo clearForm được gọi
+        $('#productModal').on('show.bs.modal', function (event) {
+            var trigger = $(event.relatedTarget);
+            if (!trigger || !trigger.length) return;
+            if (!trigger.data('id')) {
+                clearForm();
+            }
+        });
+    </script>
+}
